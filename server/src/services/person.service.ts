@@ -14,6 +14,7 @@ import {
   FaceDto,
   mapFaces,
   mapPerson,
+  mapSimilarPerson,
   MergePersonDto,
   PeopleResponseDto,
   PeopleUpdateDto,
@@ -22,6 +23,7 @@ import {
   PersonSearchDto,
   PersonStatisticsResponseDto,
   PersonUpdateDto,
+  SimilarPersonResponseDto,
 } from 'src/dtos/person.dto';
 import {
   AssetVisibility,
@@ -45,7 +47,7 @@ import { isFacialRecognitionEnabled } from 'src/utils/misc';
 
 @Injectable()
 export class PersonService extends BaseService {
-  async getAll(auth: AuthDto, dto: PersonSearchDto): Promise<PeopleResponseDto> {
+  async getAll(auth: AuthDto, dto: PersonSearchDto): Promise<PeopleResponseDto<SimilarPersonResponseDto>> {
     const { withHidden = false, closestAssetId, closestPersonId, page, size } = dto;
     let closestFaceAssetId = closestAssetId;
     const pagination = {
@@ -63,13 +65,14 @@ export class PersonService extends BaseService {
     const { machineLearning } = await this.getConfig({ withCache: false });
     const { items, hasNextPage } = await this.personRepository.getAllForUser(pagination, auth.user.id, {
       minimumFaceCount: machineLearning.facialRecognition.minFaces,
+      maximumDistance: dto.distanceThreshold,
       withHidden,
       closestFaceAssetId,
     });
     const { total, hidden } = await this.personRepository.getNumberOfPeople(auth.user.id);
 
     return {
-      people: items.map((person) => mapPerson(person)),
+      people: items.map((similarPerson) => mapSimilarPerson(similarPerson)),
       hasNextPage,
       total,
       hidden,
@@ -319,7 +322,7 @@ export class PersonService extends BaseService {
 
     const heightScale = imageHeight / (asset.faces[0]?.imageHeight || 1);
     const widthScale = imageWidth / (asset.faces[0]?.imageWidth || 1);
-    for (const { boundingBox, embedding } of faces) {
+    for (const { boundingBox, embedding, score } of faces) {
       const scaledBox = {
         x1: boundingBox.x1 * widthScale,
         y1: boundingBox.y1 * heightScale,
@@ -328,9 +331,11 @@ export class PersonService extends BaseService {
       };
       const match = asset.faces.find((face) => this.iou(face, scaledBox) > 0.5);
 
-      if (match && !mlFaceIds.delete(match.id)) {
-        embeddings.push({ faceId: match.id, embedding });
-      } else if (!match) {
+      mlFaceIds.delete(match?.id || '');
+
+      if (match) {
+        embeddings.push({ faceId: match.id, embedding, score });
+      } else {
         const faceId = this.cryptoRepository.randomUUID();
         facesToAdd.push({
           id: faceId,
@@ -342,7 +347,7 @@ export class PersonService extends BaseService {
           boundingBoxX2: boundingBox.x2,
           boundingBoxY2: boundingBox.y2,
         });
-        embeddings.push({ faceId, embedding });
+        embeddings.push({ faceId, embedding, score });
       }
     }
     const faceIdsToRemove = [...mlFaceIds];
@@ -360,7 +365,7 @@ export class PersonService extends BaseService {
       const jobs = facesToAdd.map((face) => ({ name: JobName.FACIAL_RECOGNITION, data: { id: face.id } }) as const);
       await this.jobRepository.queueAll([{ name: JobName.QUEUE_FACIAL_RECOGNITION, data: { force: false } }, ...jobs]);
     } else if (embeddings.length > 0) {
-      this.logger.log(`Added ${embeddings.length} face embeddings for asset ${id}`);
+      this.logger.log(`Added/updated ${embeddings.length} face embeddings for asset ${id}`);
     }
 
     await this.assetRepository.upsertJobStatus({ assetId: asset.id, facesRecognizedAt: new Date() });

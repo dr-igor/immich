@@ -19,4 +19,7 @@ export class FaceSearchTable {
 
   @Column({ type: 'vector', length: 512, synchronize: false })
   embedding!: string;
+
+  @Column({ indexName: 'face_score_index', type: 'double precision', nullable: true })
+  score!: number | null;
 }

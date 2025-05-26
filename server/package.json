@@ -81,6 +81,7 @@
     "nodemailer": "^7.0.0",
     "openid-client": "^6.3.3",
     "pg": "^8.11.3",
+    "pgvector": "^0.2.0",
     "picomatch": "^4.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

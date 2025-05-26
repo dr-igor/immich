@@ -236,6 +236,7 @@ export interface Exif {
 }
 
 export interface FaceSearch {
+  score: number;
   embedding: string;
   faceId: string;
 }

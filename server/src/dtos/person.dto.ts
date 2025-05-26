@@ -87,6 +87,13 @@ export class PersonSearchDto {
   @ValidateUUID({ optional: true })
   closestAssetId?: string;
 
+  @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0.1)
+  @Max(2)
+  @Type(() => Number)
+  distanceThreshold: number = 0.1;
+
   /** Page number for pagination */
   @ApiPropertyOptional()
   @IsInt()
@@ -122,6 +129,11 @@ export class PersonWithFacesResponseDto extends PersonResponseDto {
   faces!: AssetFaceWithoutPersonResponseDto[];
 }
 
+export class SimilarPersonResponseDto extends PersonResponseDto {
+  @ApiProperty({ format: 'float', nullable: true, description: 'Distance from query face (when using facesSimilarTo)' })
+  distance?: number | null;
+}
+
 export class AssetFaceWithoutPersonResponseDto {
   @ValidateUUID()
   id!: string;
@@ -139,6 +151,8 @@ export class AssetFaceWithoutPersonResponseDto {
   boundingBoxY2!: number;
   @ApiProperty({ enum: SourceType, enumName: 'SourceType' })
   sourceType?: SourceType;
+  @ApiProperty({ format: 'float', nullable: true })
+  score?: number | null;
 }
 
 export class AssetFaceResponseDto extends AssetFaceWithoutPersonResponseDto {
@@ -207,12 +221,12 @@ export class PersonStatisticsResponseDto {
   assets!: number;
 }
 
-export class PeopleResponseDto {
+export class PeopleResponseDto<T extends PersonResponseDto> {
   @ApiProperty({ type: 'integer' })
   total!: number;
   @ApiProperty({ type: 'integer' })
   hidden!: number;
-  people!: PersonResponseDto[];
+  people!: T[];
 
   // TODO: make required after a few versions
   @PropertyLifecycle({ addedAt: 'v1.110.0' })
@@ -232,7 +246,15 @@ export function mapPerson(person: Person): PersonResponseDto {
   };
 }
 
-export function mapFacesWithoutPerson(face: Selectable<AssetFaces>): AssetFaceWithoutPersonResponseDto {
+export function mapSimilarPerson(person: Selectable<Person> & { distance?: number }): SimilarPersonResponseDto {
+  return {
+    ...mapPerson(person),
+    distance: person.distance,
+  };
+}
+export function mapFacesWithoutPerson(
+  face: Selectable<AssetFaces> & { score?: number },
+): AssetFaceWithoutPersonResponseDto {
   return {
     id: face.id,
     imageHeight: face.imageHeight,
@@ -242,6 +264,7 @@ export function mapFacesWithoutPerson(face: Selectable<AssetFaces>): AssetFaceWi
     boundingBoxY1: face.boundingBoxY1,
     boundingBoxY2: face.boundingBoxY2,
     sourceType: face.sourceType,
+    score: face.score,
   };
 }
 

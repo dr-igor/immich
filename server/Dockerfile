@@ -3,17 +3,17 @@ FROM ghcr.io/immich-app/base-server-dev:202505131114@sha256:cf4507bbbf307e9b6d8e
 
 RUN apt-get install --no-install-recommends -yqq tini
 WORKDIR /usr/src/app
-COPY server/package.json server/package-lock.json ./
-COPY server/patches ./patches
+COPY --link server/package.json server/package-lock.json ./
+COPY --link server/patches ./patches
 RUN npm ci && \
-    # exiftool-vendored.pl, sharp-linux-x64 and sharp-linux-arm64 are the only ones we need
-    # they're marked as optional dependencies, so we need to copy them manually after pruning
-    rm -rf node_modules/@img/sharp-libvips* && \
-    rm -rf node_modules/@img/sharp-linuxmusl-x64
+  # exiftool-vendored.pl, sharp-linux-x64 and sharp-linux-arm64 are the only ones we need
+  # they're marked as optional dependencies, so we need to copy them manually after pruning
+  rm -rf node_modules/@img/sharp-libvips* && \
+  rm -rf node_modules/@img/sharp-linuxmusl-x64
 ENV PATH="${PATH}:/usr/src/app/bin" \
-    IMMICH_ENV=development \
-    NVIDIA_DRIVER_CAPABILITIES=all \
-    NVIDIA_VISIBLE_DEVICES=all
+  IMMICH_ENV=development \
+  NVIDIA_DRIVER_CAPABILITIES=all \
+  NVIDIA_VISIBLE_DEVICES=all
 ENTRYPOINT ["tini", "--", "/bin/sh"]
 
 FROM dev AS dev-container-server
@@ -74,8 +74,8 @@ FROM dev AS prod
 COPY server .
 RUN npm run build
 RUN npm prune --omit=dev --omit=optional
-COPY --from=dev /usr/src/app/node_modules/@img ./node_modules/@img
-COPY --from=dev /usr/src/app/node_modules/exiftool-vendored.pl ./node_modules/exiftool-vendored.pl
+COPY --from=dev --link /usr/src/app/node_modules/@img ./node_modules/@img
+COPY --from=dev --link /usr/src/app/node_modules/exiftool-vendored.pl ./node_modules/exiftool-vendored.pl
 
 # web build
 FROM node:22.16.0-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679f9b7b298eaa2f1ed8b7e AS web
@@ -83,14 +83,14 @@ FROM node:22.16.0-alpine3.20@sha256:2289fb1fba0f4633b08ec47b94a89c7e20b829fc5679
 WORKDIR /usr/src/open-api/typescript-sdk
 COPY open-api/typescript-sdk/package*.json open-api/typescript-sdk/tsconfig*.json ./
 RUN npm ci
-COPY open-api/typescript-sdk/ ./
+COPY --link open-api/typescript-sdk/ ./
 RUN npm run build
 
 WORKDIR /usr/src/app
-COPY web/package*.json web/svelte.config.js ./
+COPY --link web/package*.json web/svelte.config.js ./
 RUN npm ci
-COPY web ./
-COPY i18n ../i18n
+COPY --link web ./
+COPY --link i18n ../i18n
 RUN npm run build
 
 
@@ -99,19 +99,19 @@ FROM ghcr.io/immich-app/base-server-prod:202505061115@sha256:9971d3a089787f0bd01
 
 WORKDIR /usr/src/app
 ENV NODE_ENV=production \
-    NVIDIA_DRIVER_CAPABILITIES=all \
-    NVIDIA_VISIBLE_DEVICES=all
-COPY --from=prod /usr/src/app/node_modules ./node_modules
-COPY --from=prod /usr/src/app/dist ./dist
-COPY --from=prod /usr/src/app/bin ./bin
-COPY --from=web /usr/src/app/build /build/www
-COPY server/resources resources
-COPY server/package.json server/package-lock.json ./
-COPY server/start*.sh ./
-COPY "docker/scripts/get-cpus.sh" ./
+  NVIDIA_DRIVER_CAPABILITIES=all \
+  NVIDIA_VISIBLE_DEVICES=all
+COPY --link --from=prod /usr/src/app/node_modules ./node_modules
+COPY --link --from=prod /usr/src/app/dist ./dist
+COPY --link --from=prod /usr/src/app/bin ./bin
+COPY --link --from=web /usr/src/app/build /build/www
+COPY --link server/resources resources
+COPY --link server/package.json server/package-lock.json ./
+COPY --link server/start*.sh ./
+COPY --link "docker/scripts/get-cpus.sh" ./
 RUN npm install -g @immich/cli && npm cache clean --force
-COPY LICENSE /licenses/LICENSE.txt
-COPY LICENSE /LICENSE
+COPY --link LICENSE /licenses/LICENSE.txt
+COPY --link LICENSE /LICENSE
 ENV PATH="${PATH}:/usr/src/app/bin"
 
 ARG BUILD_ID

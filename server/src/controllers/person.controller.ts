@@ -13,6 +13,7 @@ import {
   PersonSearchDto,
   PersonStatisticsResponseDto,
   PersonUpdateDto,
+  SimilarPersonResponseDto,
 } from 'src/dtos/person.dto';
 import { Permission } from 'src/enum';
 import { Auth, Authenticated, FileResponse } from 'src/middleware/auth.guard';
@@ -33,7 +34,10 @@ export class PersonController {
 
   @Get()
   @Authenticated({ permission: Permission.PERSON_READ })
-  getAllPeople(@Auth() auth: AuthDto, @Query() options: PersonSearchDto): Promise<PeopleResponseDto> {
+  getAllPeople(
+    @Auth() auth: AuthDto,
+    @Query() options: PersonSearchDto,
+  ): Promise<PeopleResponseDto<SimilarPersonResponseDto>> {
     return this.service.getAll(auth, options);
   }
 

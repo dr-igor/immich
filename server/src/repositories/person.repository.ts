@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { ExpressionBuilder, Insertable, Kysely, Selectable, sql, Updateable } from 'kysely';
+import {
+  ExpressionBuilder,
+  Insertable,
+  Kysely,
+  OperandValueExpressionOrList,
+  Selectable,
+  sql,
+  Updateable,
+} from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
 import { AssetFaces, DB, FaceSearch, Person } from 'src/db';
@@ -10,6 +18,7 @@ import { paginationHelper, PaginationOptions } from 'src/utils/pagination';
 
 export interface PersonSearchOptions {
   minimumFaceCount: number;
+  maximumDistance?: number;
   withHidden: boolean;
   closestFaceAssetId?: string;
 }
@@ -65,6 +74,14 @@ const withPerson = (eb: ExpressionBuilder<DB, 'asset_faces'>) => {
   ).as('person');
 };
 
+const withDetectionScore = (eb: ExpressionBuilder<DB, 'asset_faces'>) => {
+  return eb
+    .selectFrom('face_search')
+    .select('face_search.score')
+    .whereRef('face_search.faceId', '=', 'asset_faces.id')
+    .as('score');
+};
+
 const withAsset = (eb: ExpressionBuilder<DB, 'asset_faces'>) => {
   return jsonObjectFrom(
     eb.selectFrom('assets').selectAll('assets').whereRef('assets.id', '=', 'asset_faces.assetId'),
@@ -76,6 +93,18 @@ const withFaceSearch = (eb: ExpressionBuilder<DB, 'asset_faces'>) => {
     eb.selectFrom('face_search').selectAll('face_search').whereRef('face_search.faceId', '=', 'asset_faces.id'),
   ).as('faceSearch');
 };
+
+const withEmbedding = <VE extends OperandValueExpressionOrList<DB, 'person' | 'face_search', 'face_search.faceId'>>(
+  eb: ExpressionBuilder<DB, 'person'>,
+  faceIdRef: VE,
+) => eb.selectFrom('face_search').select('face_search.embedding').where('face_search.faceId', '=', faceIdRef!);
+
+const withDistance = (eb: ExpressionBuilder<DB, 'person'>, closestFaceAssetId: string) =>
+  eb(
+    (eb) => withEmbedding(eb, eb.ref('person.faceAssetId')),
+    '<=>',
+    (eb) => withEmbedding(eb, closestFaceAssetId),
+  ).$castTo<number>();
 
 @Injectable()
 export class PersonRepository {
@@ -143,6 +172,9 @@ export class PersonRepository {
     const items = await this.db
       .selectFrom('person')
       .selectAll('person')
+      .$if(!!options?.closestFaceAssetId, (qb) =>
+        qb.select((eb) => withDistance(eb, options!.closestFaceAssetId!).as('distance')),
+      )
       .innerJoin('asset_faces', 'asset_faces.personId', 'person.id')
       .innerJoin('assets', (join) =>
         join
@@ -160,24 +192,11 @@ export class PersonRepository {
           eb((innerEb) => innerEb.fn.count('asset_faces.assetId'), '>=', options?.minimumFaceCount || 1),
         ]),
       )
-      .groupBy('person.id')
-      .$if(!!options?.closestFaceAssetId, (qb) =>
-        qb.orderBy((eb) =>
-          eb(
-            (eb) =>
-              eb
-                .selectFrom('face_search')
-                .select('face_search.embedding')
-                .whereRef('face_search.faceId', '=', 'person.faceAssetId'),
-            '<=>',
-            (eb) =>
-              eb
-                .selectFrom('face_search')
-                .select('face_search.embedding')
-                .where('face_search.faceId', '=', options!.closestFaceAssetId!),
-          ),
-        ),
+      .$if(!!options?.maximumDistance && !!options.closestFaceAssetId, (qb) =>
+        qb.having((eb) => eb(withDistance(eb, options!.closestFaceAssetId!), '<=', options!.maximumDistance!)),
       )
+      .groupBy('person.id')
+      .$if(!!options?.closestFaceAssetId, (qb) => qb.orderBy((eb) => withDistance(eb, options!.closestFaceAssetId!)))
       .$if(!options?.closestFaceAssetId, (qb) =>
         qb
           .orderBy(sql`NULLIF(person.name, '') is null`, 'asc')
@@ -211,6 +230,7 @@ export class PersonRepository {
       .selectFrom('asset_faces')
       .selectAll('asset_faces')
       .select(withPerson)
+      .select(withDetectionScore)
       .where('asset_faces.assetId', '=', assetId)
       .where('asset_faces.deletedAt', 'is', null)
       .orderBy('asset_faces.boundingBoxX1', 'asc')
@@ -390,7 +410,9 @@ export class PersonRepository {
     return results.map(({ id }) => id);
   }
 
-  @GenerateSql({ params: [[], [], [{ faceId: DummyValue.UUID, embedding: DummyValue.VECTOR }]] })
+  @GenerateSql({
+    params: [[], [], [{ faceId: DummyValue.UUID, embedding: DummyValue.VECTOR, score: DummyValue.NUMBER }]],
+  })
   async refreshFaces(
     facesToAdd: (Insertable<AssetFaces> & { assetId: string })[],
     faceIdsToRemove: string[],
@@ -408,7 +430,17 @@ export class PersonRepository {
     }
 
     if (embeddingsToAdd?.length) {
-      (query as any) = query.with('added_embeddings', (db) => db.insertInto('face_search').values(embeddingsToAdd));
+      (query as any) = query.with('added_embeddings', (db) =>
+        db
+          .insertInto('face_search')
+          .values(embeddingsToAdd)
+          .onConflict((oc) =>
+            oc.constraint('face_search_pkey').doUpdateSet((eb) => ({
+              embedding: eb.ref('excluded.embedding'),
+              score: eb.ref('excluded.score'),
+            })),
+          ),
+      );
     }
 
     await query.selectFrom(sql`(select 1)`.as('dummy')).execute();

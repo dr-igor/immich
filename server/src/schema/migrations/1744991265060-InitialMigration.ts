@@ -15,7 +15,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     const {
       rows: [lastMigration],
     } = await lastMigrationSql.execute(db);
-    if (lastMigration?.name !== 'AddMissingIndex1744910873956') {
+    if (lastMigration?.name !== 'AddFaceSearchScore1744991265059') {
       throw new Error(
         'Invalid upgrade path. For more information, see https://immich.app/errors#typeorm-upgrade',
       );
@@ -130,7 +130,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE TABLE "asset_job_status" ("assetId" uuid NOT NULL, "facesRecognizedAt" timestamp with time zone, "metadataExtractedAt" timestamp with time zone, "duplicatesDetectedAt" timestamp with time zone, "previewAt" timestamp with time zone, "thumbnailAt" timestamp with time zone);`.execute(db);
   await sql`CREATE TABLE "audit" ("id" serial NOT NULL, "entityType" character varying NOT NULL, "entityId" uuid NOT NULL, "action" character varying NOT NULL, "ownerId" uuid NOT NULL, "createdAt" timestamp with time zone NOT NULL DEFAULT now());`.execute(db);
   await sql`CREATE TABLE "exif" ("assetId" uuid NOT NULL, "make" character varying, "model" character varying, "exifImageWidth" integer, "exifImageHeight" integer, "fileSizeInByte" bigint, "orientation" character varying, "dateTimeOriginal" timestamp with time zone, "modifyDate" timestamp with time zone, "lensModel" character varying, "fNumber" double precision, "focalLength" double precision, "iso" integer, "latitude" double precision, "longitude" double precision, "city" character varying, "state" character varying, "country" character varying, "description" text NOT NULL DEFAULT '', "fps" double precision, "exposureTime" character varying, "livePhotoCID" character varying, "timeZone" character varying, "projectionType" character varying, "profileDescription" character varying, "colorspace" character varying, "bitsPerSample" integer, "autoStackId" character varying, "rating" integer, "updatedAt" timestamp with time zone NOT NULL DEFAULT clock_timestamp(), "updateId" uuid NOT NULL DEFAULT immich_uuid_v7());`.execute(db);
-  await sql`CREATE TABLE "face_search" ("faceId" uuid NOT NULL, "embedding" vector(512) NOT NULL);`.execute(db);
+  await sql`CREATE TABLE "face_search" ("faceId" uuid NOT NULL, "embedding" vector(512) NOT NULL, "score" double precision);`.execute(db);
   await sql`CREATE TABLE "geodata_places" ("id" integer NOT NULL, "name" character varying(200) NOT NULL, "longitude" double precision NOT NULL, "latitude" double precision NOT NULL, "countryCode" character(2) NOT NULL, "admin1Code" character varying(20), "admin2Code" character varying(80), "modificationDate" date NOT NULL, "admin1Name" character varying, "admin2Name" character varying, "alternateNames" character varying);`.execute(db);
   await sql`CREATE TABLE "memories" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" timestamp with time zone NOT NULL DEFAULT now(), "updatedAt" timestamp with time zone NOT NULL DEFAULT now(), "deletedAt" timestamp with time zone, "ownerId" uuid NOT NULL, "type" character varying NOT NULL, "data" jsonb NOT NULL, "isSaved" boolean NOT NULL DEFAULT false, "memoryAt" timestamp with time zone NOT NULL, "seenAt" timestamp with time zone, "showAt" timestamp with time zone, "hideAt" timestamp with time zone, "updateId" uuid NOT NULL DEFAULT immich_uuid_v7());`.execute(db);
   await sql`CREATE TABLE "memories_assets_assets" ("memoriesId" uuid NOT NULL, "assetsId" uuid NOT NULL);`.execute(db);
@@ -295,6 +295,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE INDEX "IDX_auto_stack_id" ON "exif" ("autoStackId")`.execute(db);
   await sql`CREATE INDEX "IDX_asset_exif_update_id" ON "exif" ("updateId")`.execute(db);
   await sql.raw(vectorIndexQuery({ vectorExtension, table: 'face_search', indexName: 'face_index' })).execute(db);
+  await sql`CREATE INDEX "face_score_index" ON "face_search" ("score")`.execute(db);
   await sql`CREATE INDEX "IDX_geodata_gist_earthcoord" ON "geodata_places" (ll_to_earth_public(latitude, longitude))`.execute(db);
   await sql`CREATE INDEX "idx_geodata_places_name" ON "geodata_places" USING gin (f_unaccent("name") gin_trgm_ops)`.execute(db);
   await sql`CREATE INDEX "idx_geodata_places_admin2_name" ON "geodata_places" USING gin (f_unaccent("admin2Name") gin_trgm_ops)`.execute(db);
