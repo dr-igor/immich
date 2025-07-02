@@ -101,16 +101,46 @@ export class SearchService extends BaseService {
       throw new BadRequestException('Smart search is not enabled');
     }
 
-    const userIds = this.getUserIdsToSearch(auth);
-    const key = machineLearning.clip.modelName + dto.query + dto.language;
-    let embedding = this.embeddingCache.get(key);
-    if (!embedding) {
-      embedding = await this.machineLearningRepository.encodeText(machineLearning.urls, dto.query, {
-        modelName: machineLearning.clip.modelName,
-        language: dto.language,
-      });
-      this.embeddingCache.set(key, embedding);
+    // Validate that exactly one of query or assetId is provided
+    if (!dto.query && !dto.assetId) {
+      throw new BadRequestException('Either query or assetId must be provided');
     }
+    if (dto.query && dto.assetId) {
+      throw new BadRequestException('Only one of query or assetId can be provided');
+    }
+
+    const userIds = this.getUserIdsToSearch(auth);
+    let embedding: string;
+    let key: string;
+
+    if (dto.assetId) {
+      // Search by image
+      const asset = await this.assetRepository.getById(dto.assetId, { user: auth.user });
+      if (!asset) {
+        throw new BadRequestException('Asset not found');
+      }
+      
+      key = machineLearning.clip.modelName + dto.assetId;
+      embedding = this.embeddingCache.get(key);
+      if (!embedding) {
+        embedding = await this.machineLearningRepository.encodeImage(machineLearning.urls, asset.originalPath, {
+          modelName: machineLearning.clip.modelName,
+        });
+        this.embeddingCache.set(key, embedding);
+      }
+    } else {
+      // Search by text
+      key = machineLearning.clip.modelName + dto.query + (dto.language || '');
+      embedding = this.embeddingCache.get(key);
+      if (!embedding) {
+        embedding = await this.machineLearningRepository.encodeText(machineLearning.urls, dto.query!, {
+          modelName: machineLearning.clip.modelName,
+          language: dto.language,
+        });
+        this.embeddingCache.set(key, embedding);
+      }
+    }
+
     const page = dto.page ?? 1;
     const size = dto.size || 100;
     const { hasNextPage, items } = await this.searchRepository.searchSmart(
