@@ -5,9 +5,13 @@
   interface Props {
     query: string | undefined;
     queryType?: 'smart' | 'metadata' | 'description';
+    assetId?: string;
   }
 
-  let { query = $bindable(), queryType = $bindable('smart') }: Props = $props();
+  let { query = $bindable(), queryType = $bindable('smart'), assetId = $bindable() }: Props = $props();
+  
+  // When searching by image, we should show that context is being used
+  let isImageSearch = $derived(!!assetId);
 </script>
 
 <fieldset>
@@ -33,14 +37,31 @@
 
 {#if queryType === 'smart'}
   <label for="context-input" class="immich-form-label">{$t('search_by_context')}</label>
-  <input
-    class="immich-form-input hover:cursor-text w-full mt-1!"
-    type="text"
-    id="context-input"
-    name="context"
-    placeholder={$t('sunrise_on_the_beach')}
-    bind:value={query}
-  />
+  {#if isImageSearch}
+    <div class="immich-form-input flex items-center justify-between bg-gray-100 dark:bg-gray-700 mt-1 px-3 py-2 rounded-lg">
+      <span class="text-sm text-gray-600 dark:text-gray-300">{$t('searching_by_image_similarity')}</span>
+      <button
+        type="button"
+        class="text-xs text-immich-primary hover:text-immich-primary/80"
+        onclick={() => { 
+          // Clear the image search - this needs to propagate up to the filter
+          assetId = undefined; 
+          query = ''; 
+        }}
+      >
+        {$t('clear')}
+      </button>
+    </div>
+  {:else}
+    <input
+      class="immich-form-input hover:cursor-text w-full mt-1!"
+      type="text"
+      id="context-input"
+      name="context"
+      placeholder={$t('sunrise_on_the_beach')}
+      bind:value={query}
+    />
+  {/if}
 {:else if queryType === 'metadata'}
   <label for="file-name-input" class="immich-form-label">{$t('search_by_filename')}</label>
   <input
