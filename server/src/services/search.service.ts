@@ -17,7 +17,7 @@ import {
   SmartSearchDto,
   StatisticsSearchDto,
 } from 'src/dtos/search.dto';
-import { AssetOrder, AssetVisibility } from 'src/enum';
+import { AssetOrder, AssetVisibility, Permission } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getMyPartnerIds } from 'src/utils/asset.util';
@@ -115,29 +115,29 @@ export class SearchService extends BaseService {
 
     if (dto.assetId) {
       // Search by image
-      const asset = await this.assetRepository.getById(dto.assetId, { user: auth.user });
+      await this.requireAccess({ auth, permission: Permission.ASSET_READ, ids: [dto.assetId] });
+      const asset = await this.assetRepository.getById(dto.assetId);
       if (!asset) {
         throw new BadRequestException('Asset not found');
       }
       
-      key = machineLearning.clip.modelName + dto.assetId;
-      embedding = this.embeddingCache.get(key);
-      if (!embedding) {
-        embedding = await this.machineLearningRepository.encodeImage(machineLearning.urls, asset.originalPath, {
-          modelName: machineLearning.clip.modelName,
-        });
-        this.embeddingCache.set(key, embedding);
+      const assetEmbedding = await this.searchRepository.getEmbedding(dto.assetId);
+      if (!assetEmbedding) {
+        throw new BadRequestException('Asset does not have an embedding. Please run the Smart Search job on assets missing encodings.');
       }
+      embedding = assetEmbedding;
     } else {
       // Search by text
       key = machineLearning.clip.modelName + dto.query + (dto.language || '');
-      embedding = this.embeddingCache.get(key);
-      if (!embedding) {
+      const cachedEmbedding = this.embeddingCache.get(key);
+      if (!cachedEmbedding) {
         embedding = await this.machineLearningRepository.encodeText(machineLearning.urls, dto.query!, {
           modelName: machineLearning.clip.modelName,
           language: dto.language,
         });
         this.embeddingCache.set(key, embedding);
+      } else {
+        embedding = cachedEmbedding;
       }
     }
 

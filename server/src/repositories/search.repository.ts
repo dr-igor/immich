@@ -400,6 +400,16 @@ export class SearchRepository {
       .execute();
   }
 
+  async getEmbedding(assetId: string): Promise<string | null> {
+    const result = await this.db
+      .selectFrom('smart_search')
+      .select('embedding')
+      .where('assetId', '=', assetId)
+      .executeTakeFirst();
+    
+    return result?.embedding ?? null;
+  }
+
   async getCountries(userIds: string[]): Promise<string[]> {
     const res = await this.getExifField('country', userIds).execute();
     return res.map((row) => row.country!);

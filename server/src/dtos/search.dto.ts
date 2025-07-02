@@ -191,6 +191,34 @@ export class StatisticsSearchDto extends BaseSearchDto {
   description?: string;
 }
 
+export class SmartTextSearchDto extends BaseSearchWithResultsDto {
+  @IsString()
+  @IsNotEmpty()
+  query!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Optional()
+  language?: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @Optional()
+  page?: number;
+}
+
+export class SmartImageSearchDto extends BaseSearchWithResultsDto {
+  @ValidateUUID()
+  assetId!: string;
+
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  @Optional()
+  page?: number;
+}
+
 export class SmartSearchDto extends BaseSearchWithResultsDto {
   @IsString()
   @IsNotEmpty()
