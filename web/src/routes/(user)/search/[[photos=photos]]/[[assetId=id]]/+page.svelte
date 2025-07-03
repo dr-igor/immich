@@ -72,6 +72,7 @@
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
+  let isImageBasedSearch = $derived('assetId' in terms && smartSearchEnabled);
 
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -381,6 +382,7 @@
         {assetInteraction}
         onIntersected={loadNextPage}
         showArchiveIcon={true}
+        showSimilarityScore={isImageBasedSearch}
         {viewport}
         pageHeaderOffset={54}
         onReload={onSearchQueryUpdate}
