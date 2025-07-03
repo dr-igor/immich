@@ -298,7 +298,9 @@ describe(SearchService.name, () => {
       mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([assetStub.image.id])); // Grant access
 
       await expect(sut.searchSmart(authStub.user1, { assetId: assetStub.image.id })).rejects.toThrowError(
-        new BadRequestException('Asset does not have an embedding. Please run the Smart Search job on assets missing encodings.'),
+        new BadRequestException(
+          'Asset does not have an embedding. Please run the Smart Search job on assets missing encodings.',
+        ),
       );
     });
   });

@@ -219,26 +219,7 @@ export class SmartImageSearchDto extends BaseSearchWithResultsDto {
   page?: number;
 }
 
-export class SmartSearchDto extends BaseSearchWithResultsDto {
-  @IsString()
-  @IsNotEmpty()
-  @Optional()
-  query?: string;
-
-  @ValidateUUID({ optional: true })
-  assetId?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @Optional()
-  language?: string;
-
-  @IsInt()
-  @Min(1)
-  @Type(() => Number)
-  @Optional()
-  page?: number;
-}
+export type SmartSearchDto = SmartTextSearchDto | SmartImageSearchDto;
 
 export class SearchPlacesDto {
   @IsString()

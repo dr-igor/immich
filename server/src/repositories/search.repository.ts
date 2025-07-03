@@ -406,7 +406,7 @@ export class SearchRepository {
       .select('embedding')
       .where('assetId', '=', assetId)
       .executeTakeFirst();
-    
+
     return result?.embedding ?? null;
   }
 
