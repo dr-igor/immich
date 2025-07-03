@@ -138,7 +138,9 @@ export function getParentPath(path: string) {
   const normalized = normalizeTreePath(path);
   const last = normalized.lastIndexOf('/');
   if (last > 0) {
-    return normalized.slice(0, last);
+    const parentPath = normalized.slice(0, last);
+    // Normalize leading double slashes for external library compatibility
+    return parentPath.startsWith('//') ? parentPath.slice(1) : parentPath;
   }
   return last === 0 ? '/' : normalized;
 }
