@@ -258,6 +258,7 @@ export class SearchRepository {
       await sql`set local vchordrq.probes = ${sql.lit(probes[VectorIndex.CLIP])}`.execute(trx);
       const items = await searchAssetBuilder(trx, options)
         .selectAll('assets')
+        .select(sql<number>`smart_search.embedding <=> ${options.embedding}`.as('similarityScore'))
         .innerJoin('smart_search', 'assets.id', 'smart_search.assetId')
         .orderBy(sql`smart_search.embedding <=> ${options.embedding}`)
         .limit(pagination.size + 1)
@@ -398,6 +399,16 @@ export class SearchRepository {
       .values({ assetId, embedding })
       .onConflict((oc) => oc.column('assetId').doUpdateSet((eb) => ({ embedding: eb.ref('excluded.embedding') })))
       .execute();
+  }
+
+  async getEmbedding(assetId: string): Promise<string | null> {
+    const result = await this.db
+      .selectFrom('smart_search')
+      .select('embedding')
+      .where('assetId', '=', assetId)
+      .executeTakeFirst();
+
+    return result?.embedding ?? null;
   }
 
   async getCountries(userIds: string[]): Promise<string[]> {

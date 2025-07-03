@@ -31,6 +31,7 @@ export type TimelineAsset = {
   city: string | null;
   country: string | null;
   people: string[] | null;
+  similarityScore?: number;
 };
 
 export type AssetOperation = (asset: TimelineAsset) => { remove: boolean };

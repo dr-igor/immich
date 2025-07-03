@@ -68,10 +68,11 @@
 
   const assetInteraction = new AssetInteraction();
 
-  type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query'>;
+  type SearchTerms = MetadataSearchDto & Pick<SmartSearchDto, 'query' | 'assetId'>;
   let searchQuery = $derived(page.url.searchParams.get(QueryParameter.QUERY));
   let smartSearchEnabled = $derived($featureFlags.loaded && $featureFlags.smartSearch);
   let terms = $derived(searchQuery ? JSON.parse(searchQuery) : {});
+  let isImageBasedSearch = $derived('assetId' in terms && smartSearchEnabled);
 
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -167,7 +168,7 @@
 
     try {
       const { albums, assets } =
-        'query' in searchDto && smartSearchEnabled
+        ('query' in searchDto || 'assetId' in searchDto) && smartSearchEnabled
           ? await searchSmart({ smartSearchDto: searchDto })
           : await searchAssets({ metadataSearchDto: searchDto });
 
@@ -381,6 +382,7 @@
         {assetInteraction}
         onIntersected={loadNextPage}
         showArchiveIcon={true}
+        showSimilarityScore={isImageBasedSearch}
         {viewport}
         pageHeaderOffset={54}
         onReload={onSearchQueryUpdate}

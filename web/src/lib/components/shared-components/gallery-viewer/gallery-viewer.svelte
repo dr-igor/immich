@@ -31,6 +31,7 @@
     assetInteraction: AssetInteraction;
     disableAssetSelect?: boolean;
     showArchiveIcon?: boolean;
+    showSimilarityScore?: boolean;
     viewport: Viewport;
     onIntersected?: (() => void) | undefined;
     showAssetName?: boolean;
@@ -48,6 +49,7 @@
     assetInteraction,
     disableAssetSelect = false,
     showArchiveIcon = false,
+    showSimilarityScore = false,
     viewport,
     onIntersected = undefined,
     showAssetName = false,
@@ -492,6 +494,7 @@
             onSelect={() => handleSelectAssets(toTimelineAsset(currentAsset))}
             onMouseEvent={() => assetMouseEventHandler(toTimelineAsset(currentAsset))}
             {showArchiveIcon}
+            {showSimilarityScore}
             asset={toTimelineAsset(currentAsset)}
             selected={assetInteraction.hasSelectedAsset(currentAsset.id)}
             selectionCandidate={assetInteraction.hasSelectionCandidate(currentAsset.id)}

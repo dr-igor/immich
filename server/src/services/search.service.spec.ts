@@ -185,6 +185,9 @@ describe(SearchService.name, () => {
     beforeEach(() => {
       mocks.search.searchSmart.mockResolvedValue({ hasNextPage: false, items: [] });
       mocks.machineLearning.encodeText.mockResolvedValue('[1, 2, 3]');
+      mocks.search.getEmbedding.mockResolvedValue('[4, 5, 6]');
+      mocks.asset.getById.mockResolvedValue(assetStub.image);
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([assetStub.image.id]));
     });
 
     it('should raise a BadRequestException if machine learning is disabled', async () => {
@@ -256,6 +259,48 @@ describe(SearchService.name, () => {
         [expect.any(String)],
         'test',
         expect.objectContaining({ language: 'de' }),
+      );
+    });
+
+    it('should raise a BadRequestException if neither query nor assetId is provided', async () => {
+      await expect(sut.searchSmart(authStub.user1, {})).rejects.toThrowError(
+        new BadRequestException('Either query or assetId must be provided'),
+      );
+    });
+
+    it('should raise a BadRequestException if both query and assetId are provided', async () => {
+      await expect(sut.searchSmart(authStub.user1, { query: 'test', assetId: 'asset-id' })).rejects.toThrowError(
+        new BadRequestException('Only one of query or assetId can be provided'),
+      );
+    });
+
+    it('should work with assetId for image search', async () => {
+      await sut.searchSmart(authStub.user1, { assetId: assetStub.image.id });
+
+      expect(mocks.asset.getById).toHaveBeenCalledWith(assetStub.image.id);
+      expect(mocks.search.getEmbedding).toHaveBeenCalledWith(assetStub.image.id);
+      expect(mocks.search.searchSmart).toHaveBeenCalledWith(
+        { page: 1, size: 100 },
+        { assetId: assetStub.image.id, embedding: '[4, 5, 6]', userIds: [authStub.user1.user.id] },
+      );
+    });
+
+    it('should raise a BadRequestException if asset is not found', async () => {
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set()); // No access
+
+      await expect(sut.searchSmart(authStub.user1, { assetId: 'invalid-asset-id' })).rejects.toThrowError(
+        new BadRequestException('Not found or no asset.read access'),
+      );
+    });
+
+    it('should raise a BadRequestException if asset does not have an embedding', async () => {
+      mocks.search.getEmbedding.mockResolvedValue(null);
+      mocks.access.asset.checkOwnerAccess.mockResolvedValue(new Set([assetStub.image.id])); // Grant access
+
+      await expect(sut.searchSmart(authStub.user1, { assetId: assetStub.image.id })).rejects.toThrowError(
+        new BadRequestException(
+          'Asset does not have an embedding. Please run the Smart Search job on assets missing encodings.',
+        ),
       );
     });
   });

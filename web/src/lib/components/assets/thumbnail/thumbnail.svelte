@@ -42,6 +42,7 @@
     readonly?: boolean;
     showArchiveIcon?: boolean;
     showStackedIcon?: boolean;
+    showSimilarityScore?: boolean;
     imageClass?: ClassValue;
     brokenAssetClass?: ClassValue;
     dimmed?: boolean;
@@ -63,6 +64,7 @@
     readonly = false,
     showArchiveIcon = false,
     showStackedIcon = true,
+    showSimilarityScore = false,
     onClick = undefined,
     onSelect = undefined,
     onMouseEvent = undefined,
@@ -302,6 +304,15 @@
               <p>{asset.stack.assetCount.toLocaleString($locale)}</p>
               <Icon path={mdiCameraBurst} size="24" />
             </span>
+          </div>
+        {/if}
+
+        <!-- Similarity score pill for image-based search -->
+        {#if showSimilarityScore && asset.similarityScore !== undefined}
+          <div class="absolute top-2 end-2">
+            <div class="bg-black/60 text-white text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm">
+              {(asset.similarityScore * 100).toFixed(0)}%
+            </div>
           </div>
         {/if}
       </div>
