@@ -138,7 +138,10 @@
   const getAssetFolderHref = (asset: AssetResponseDto) => {
     const folderUrl = new URL(AppRoute.FOLDERS, globalThis.location.href);
     // Remove the last part of the path to get the parent path
-    const assetParentPath = getParentPath(asset.originalPath);
+    let assetParentPath = getParentPath(asset.originalPath);
+    if (assetParentPath.startsWith('/')) {
+      assetParentPath = assetParentPath.slice(1);
+    }
     folderUrl.searchParams.set(QueryParameter.PATH, assetParentPath);
     return folderUrl.href;
   };
