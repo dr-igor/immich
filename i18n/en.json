@@ -1558,6 +1558,8 @@
   "search_camera_model": "Search camera model...",
   "search_city": "Search city...",
   "search_country": "Search country...",
+  "search_similar_images": "Search for similar images",
+  "searching_by_image_similarity": "Searching by image similarity",
   "search_filter_apply": "Apply filter",
   "search_filter_camera_title": "Select camera type",
   "search_filter_date": "Date",

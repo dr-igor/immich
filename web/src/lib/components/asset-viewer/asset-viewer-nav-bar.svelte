@@ -10,6 +10,7 @@
   import FavoriteAction from '$lib/components/asset-viewer/actions/favorite-action.svelte';
   import KeepThisDeleteOthersAction from '$lib/components/asset-viewer/actions/keep-this-delete-others.svelte';
   import RestoreAction from '$lib/components/asset-viewer/actions/restore-action.svelte';
+  import SearchByImageAction from '$lib/components/asset-viewer/actions/search-by-image-action.svelte';
   import SetAlbumCoverAction from '$lib/components/asset-viewer/actions/set-album-cover-action.svelte';
   import SetFeaturedPhotoAction from '$lib/components/asset-viewer/actions/set-person-featured-action.svelte';
   import SetProfilePictureAction from '$lib/components/asset-viewer/actions/set-profile-picture-action.svelte';
@@ -21,6 +22,7 @@
   import ButtonContextMenu from '$lib/components/shared-components/context-menu/button-context-menu.svelte';
   import MenuOption from '$lib/components/shared-components/context-menu/menu-option.svelte';
   import { AppRoute } from '$lib/constants';
+  import { featureFlags } from '$lib/stores/server-config.store';
   import { user } from '$lib/stores/user.store';
   import { photoZoomState } from '$lib/stores/zoom-image.store';
   import { getAssetJobName, getSharedLink } from '$lib/utils';
@@ -167,6 +169,10 @@
 
     {#if isOwner}
       <FavoriteAction {asset} {onAction} />
+    {/if}
+
+    {#if !asset.isTrashed && !isLocked && $featureFlags.smartSearch}
+      <SearchByImageAction {asset} />
     {/if}
 
     {#if isOwner}

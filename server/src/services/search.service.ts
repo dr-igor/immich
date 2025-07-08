@@ -17,7 +17,7 @@ import {
   SmartSearchDto,
   StatisticsSearchDto,
 } from 'src/dtos/search.dto';
-import { AssetOrder, AssetVisibility } from 'src/enum';
+import { AssetOrder, AssetVisibility, Permission } from 'src/enum';
 import { BaseService } from 'src/services/base.service';
 import { requireElevatedPermission } from 'src/utils/access';
 import { getMyPartnerIds } from 'src/utils/asset.util';
@@ -101,16 +101,53 @@ export class SearchService extends BaseService {
       throw new BadRequestException('Smart search is not enabled');
     }
 
-    const userIds = this.getUserIdsToSearch(auth);
-    const key = machineLearning.clip.modelName + dto.query + dto.language;
-    let embedding = this.embeddingCache.get(key);
-    if (!embedding) {
-      embedding = await this.machineLearningRepository.encodeText(machineLearning.urls, dto.query, {
-        modelName: machineLearning.clip.modelName,
-        language: dto.language,
-      });
-      this.embeddingCache.set(key, embedding);
+    // Validate that exactly one of query or assetId is provided
+    // Type narrowing and validation
+    const isImageSearch = 'assetId' in dto;
+    const isTextSearch = 'query' in dto;
+    
+    // Runtime validation for union type
+    if (!isImageSearch && !isTextSearch) {
+      throw new BadRequestException('Either query or assetId must be provided');
     }
+    if (isImageSearch && isTextSearch) {
+      throw new BadRequestException('Only one of query or assetId can be provided');
+    }
+
+    const userIds = this.getUserIdsToSearch(auth);
+    let embedding: string;
+    let key: string;
+
+    if (isImageSearch) {
+      // dto is SmartImageSearchDto - Search by image
+      await this.requireAccess({ auth, permission: Permission.ASSET_READ, ids: [dto.assetId] });
+      const asset = await this.assetRepository.getById(dto.assetId);
+      if (!asset) {
+        throw new BadRequestException('Asset not found');
+      }
+
+      const assetEmbedding = await this.searchRepository.getEmbedding(dto.assetId);
+      if (!assetEmbedding) {
+        throw new BadRequestException(
+          'Asset does not have an embedding. Please run the Smart Search job on assets missing encodings.',
+        );
+      }
+      embedding = assetEmbedding;
+    } else {
+      // dto is SmartTextSearchDto - Search by text
+      key = machineLearning.clip.modelName + dto.query + (dto.language || '');
+      const cachedEmbedding = this.embeddingCache.get(key);
+      if (cachedEmbedding) {
+        embedding = cachedEmbedding;
+      } else {
+        embedding = await this.machineLearningRepository.encodeText(machineLearning.urls, dto.query, {
+          modelName: machineLearning.clip.modelName,
+          language: dto.language,
+        });
+        this.embeddingCache.set(key, embedding);
+      }
+    }
+
     const page = dto.page ?? 1;
     const size = dto.size || 100;
     const { hasNextPage, items } = await this.searchRepository.searchSmart(

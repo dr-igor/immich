@@ -7,6 +7,7 @@
   export type SearchFilter = {
     query: string;
     queryType: 'smart' | 'metadata' | 'description';
+    assetId?: string;
     personIds: SvelteSet<string>;
     tagIds: SvelteSet<string>;
     location: SearchLocationFilter;
@@ -66,7 +67,8 @@
 
   let filter: SearchFilter = $state({
     query: 'query' in searchQuery ? searchQuery.query : searchQuery.originalFileName || '',
-    queryType: defaultQueryType(),
+    queryType: 'assetId' in searchQuery && searchQuery.assetId ? 'smart' : defaultQueryType(),
+    assetId: 'assetId' in searchQuery ? searchQuery.assetId : undefined,
     personIds: new SvelteSet('personIds' in searchQuery ? searchQuery.personIds : []),
     tagIds: new SvelteSet('tagIds' in searchQuery ? searchQuery.tagIds : []),
     location: {
@@ -100,6 +102,7 @@
     filter = {
       query: '',
       queryType: defaultQueryType(), // retain from localStorage or default
+      assetId: undefined,
       personIds: new SvelteSet(),
       tagIds: new SvelteSet(),
       location: {},
@@ -127,6 +130,7 @@
 
     let payload: SmartSearchDto | MetadataSearchDto = {
       query: filter.queryType === 'smart' ? query : undefined,
+      assetId: filter.queryType === 'smart' ? filter.assetId : undefined,
       originalFileName: filter.queryType === 'metadata' ? query : undefined,
       description: filter.queryType === 'description' ? query : undefined,
       country: filter.location.country,
@@ -173,7 +177,7 @@
         <SearchPeopleSection bind:selectedPeople={filter.personIds} />
 
         <!-- TEXT -->
-        <SearchTextSection bind:query={filter.query} bind:queryType={filter.queryType} />
+        <SearchTextSection bind:query={filter.query} bind:queryType={filter.queryType} bind:assetId={filter.assetId} />
 
         <!-- TAGS -->
         <SearchTagsSection bind:selectedTags={filter.tagIds} />

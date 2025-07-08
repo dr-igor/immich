@@ -83,6 +83,9 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   stack?: AssetStackResponseDto | null;
   duplicateId?: string | null;
 
+  @ApiProperty({ type: 'number', required: false })
+  similarityScore?: number;
+
   @PropertyLifecycle({ deprecatedAt: 'v1.113.0' })
   resized?: boolean;
 }
@@ -122,6 +125,7 @@ export type MapAsset = {
   tags?: Tag[];
   thumbhash: Buffer<ArrayBufferLike> | null;
   type: AssetType;
+  similarityScore?: number;
 };
 
 export class AssetStackResponseDto {
@@ -218,6 +222,7 @@ export function mapAsset(entity: MapAsset, options: AssetMapOptions = {}): Asset
     isOffline: entity.isOffline,
     hasMetadata: true,
     duplicateId: entity.duplicateId,
+    similarityScore: entity.similarityScore,
     resized: true,
   };
 }
