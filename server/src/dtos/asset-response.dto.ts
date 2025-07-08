@@ -82,12 +82,7 @@ export class AssetResponseDto extends SanitizedAssetResponseDto {
   checksum!: string;
   stack?: AssetStackResponseDto | null;
   duplicateId?: string | null;
-  
-  /**
-   * Similarity score (cosine distance) when returned from image-based search.
-   * Only present for smart search results using image similarity.
-   * Lower values indicate higher similarity.
-   */
+
   @ApiProperty({ type: 'number', required: false })
   similarityScore?: number;
 

@@ -382,7 +382,7 @@
         {assetInteraction}
         onIntersected={loadNextPage}
         showArchiveIcon={true}
-        showSimilarityScore={isImageBasedSearch}
+        showSimilarityScore={true}
         {viewport}
         pageHeaderOffset={54}
         onReload={onSearchQueryUpdate}
