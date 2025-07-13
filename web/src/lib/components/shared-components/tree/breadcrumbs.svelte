@@ -1,8 +1,10 @@
 <script lang="ts">
   import Icon from '$lib/components/elements/icon.svelte';
+  import LocalPathMappingModal from '$lib/modals/LocalPathMappingModal.svelte';
+  import { getLocalPathForRemote } from '$lib/utils/local-path-mappings';
   import { TreeNode } from '$lib/utils/tree-utils';
   import { IconButton } from '@immich/ui';
-  import { mdiArrowUpLeft, mdiChevronRight } from '@mdi/js';
+  import { mdiArrowUpLeft, mdiChevronRight, mdiCog, mdiLink } from '@mdi/js';
   import { t } from 'svelte-i18n';
 
   interface Props {
@@ -13,6 +15,9 @@
   }
 
   const { node, getLink, title, icon }: Props = $props();
+
+  let showMappingModal = $state(false);
+  let localLink: string | undefined = $derived(getLocalPathForRemote(node.path));
 
   const rootLink = getLink('');
   const isRoot = $derived(node.parent === null);
@@ -67,7 +72,36 @@
       >
         <Icon path={mdiChevronRight} class="text-gray-500 dark:text-gray-300" size={16} ariaHidden />
         <p class="cursor-default whitespace-pre-wrap">{node.value}</p>
+        <IconButton
+          shape="round"
+          color="secondary"
+          variant="ghost"
+          icon={mdiCog}
+          size="small"
+          class="ml-1"
+          title={$t('configure_local_path_mapping')}
+          aria-label={$t('configure_local_path_mapping')}
+          onclick={() => (showMappingModal = true)}
+        />
+        {#if localLink}
+          <IconButton
+            shape="round"
+            color="secondary"
+            variant="ghost"
+            icon={mdiLink}
+            size="small"
+            class="ml-1"
+            title={$t('open_local_folder')}
+            aria-label={$t('open_local_folder')}
+            href={localLink}
+            target="_blank"
+            rel="noopener noreferrer"
+          />
+        {/if}
       </li>
+      {#if showMappingModal}
+        <LocalPathMappingModal remotePath={node.path} onClose={() => (showMappingModal = false)} />
+      {/if}
     </ol>
   </div>
 </nav>
