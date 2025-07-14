@@ -7,6 +7,7 @@ import { AssetFace, Person } from 'src/database';
 import { AssetFaces } from 'src/db';
 import { PropertyLifecycle } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
+import { TagResponseDto, mapTag } from 'src/dtos/tag.dto';
 import { SourceType } from 'src/enum';
 import { asDateString } from 'src/utils/date';
 import {
@@ -48,6 +49,21 @@ export class PersonCreateDto {
   @Optional({ emptyToNull: true, nullable: true })
   @ValidateHexColor()
   color?: string | null;
+
+  /**
+   * Person description
+   */
+  @Optional()
+  @IsString()
+  description?: string;
+
+  /**
+   * Tags associated with the person
+   */
+  @Optional()
+  @IsArray()
+  @ValidateUUID({ each: true })
+  tagIds?: string[];
 }
 
 export class PersonUpdateDto extends PersonCreateDto {
@@ -77,6 +93,13 @@ export class PeopleUpdateItem extends PersonUpdateDto {
 export class MergePersonDto {
   @ValidateUUID({ each: true })
   ids!: string[];
+
+  /**
+   * Combined description for merged person (optional override)
+   */
+  @Optional()
+  @IsString()
+  description?: string;
 }
 
 export class PersonSearchDto {
@@ -123,6 +146,8 @@ export class PersonResponseDto {
   isFavorite?: boolean;
   @PropertyLifecycle({ addedAt: 'v1.126.0' })
   color?: string;
+  description?: string;
+  tags?: TagResponseDto[];
 }
 
 export class PersonWithFacesResponseDto extends PersonResponseDto {
@@ -233,7 +258,7 @@ export class PeopleResponseDto<T extends PersonResponseDto> {
   hasNextPage?: boolean;
 }
 
-export function mapPerson(person: Person): PersonResponseDto {
+export function mapPerson(person: Person, tags?: TagResponseDto[]): PersonResponseDto {
   return {
     id: person.id,
     name: person.name,
@@ -243,6 +268,8 @@ export function mapPerson(person: Person): PersonResponseDto {
     isFavorite: person.isFavorite,
     color: person.color ?? undefined,
     updatedAt: person.updatedAt,
+    description: person.description,
+    tags: tags,
   };
 }
 

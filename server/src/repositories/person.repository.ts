@@ -549,4 +549,54 @@ export class PersonRepository {
       await sql`REINDEX TABLE face_search`.execute(this.db);
     }
   }
+
+  @GenerateSql({ params: [DummyValue.UUID] })
+  async getPersonTags(personId: string) {
+    return this.db
+      .selectFrom('person_tag')
+      .innerJoin('tags', 'tags.id', 'person_tag.tagId')
+      .selectAll('tags')
+      .where('person_tag.personId', '=', personId)
+      .execute();
+  }
+
+  @GenerateSql({ params: [DummyValue.UUID, [DummyValue.UUID]] })
+  async setPersonTags(personId: string, tagIds: string[]): Promise<void> {
+    // First, remove existing tags
+    await this.db
+      .deleteFrom('person_tag')
+      .where('person_tag.personId', '=', personId)
+      .execute();
+
+    // Then, add new tags if any
+    if (tagIds.length > 0) {
+      const tagEntries = tagIds.map(tagId => ({ personId, tagId }));
+      await this.db
+        .insertInto('person_tag')
+        .values(tagEntries)
+        .execute();
+    }
+  }
+
+  @GenerateSql({ params: [[DummyValue.UUID]] })
+  async getPersonsWithTags(personIds: string[]) {
+    if (personIds.length === 0) {
+      return [];
+    }
+
+    return this.db
+      .selectFrom('person')
+      .selectAll('person')
+      .select((eb) =>
+        jsonObjectFrom(
+          eb
+            .selectFrom('person_tag')
+            .innerJoin('tags', 'tags.id', 'person_tag.tagId')
+            .selectAll('tags')
+            .whereRef('person_tag.personId', '=', 'person.id')
+        ).as('tags')
+      )
+      .where('person.id', 'in', personIds)
+      .execute();
+  }
 }

@@ -347,6 +347,7 @@ export interface Person {
   birthDate: Timestamp | null;
   color: string | null;
   createdAt: Generated<Timestamp>;
+  description: Generated<string>;
   faceAssetId: string | null;
   id: Generated<string>;
   isFavorite: Generated<boolean>;
@@ -356,6 +357,11 @@ export interface Person {
   thumbnailPath: Generated<string>;
   updatedAt: Generated<Timestamp>;
   updateId: Generated<string>;
+}
+
+export interface PersonTag {
+  personId: string;
+  tagId: string;
 }
 
 export interface Sessions {
@@ -511,6 +517,7 @@ export interface DB {
   partners_audit: PartnersAudit;
   partners: Partners;
   person: Person;
+  person_tag: PersonTag;
   sessions: Sessions;
   session_sync_checkpoints: SessionSyncCheckpoints;
   shared_link__asset: SharedLinkAsset;

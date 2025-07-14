@@ -48,6 +48,9 @@ export class PersonTable {
   @Column({ type: 'character varying', nullable: true, default: null })
   color?: string | null;
 
+  @Column({ type: 'text', default: '' })
+  description!: string;
+
   @UpdateIdColumn({ indexName: 'IDX_person_update_id' })
   updateId!: string;
 }

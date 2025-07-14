@@ -25,6 +25,7 @@ import {
   PersonUpdateDto,
   SimilarPersonResponseDto,
 } from 'src/dtos/person.dto';
+import { mapTag } from 'src/dtos/tag.dto';
 import {
   AssetVisibility,
   CacheControl,
@@ -151,7 +152,9 @@ export class PersonService extends BaseService {
 
   async getById(auth: AuthDto, id: string): Promise<PersonResponseDto> {
     await this.requireAccess({ auth, permission: Permission.PERSON_READ, ids: [id] });
-    return this.findOrFail(id).then(mapPerson);
+    const person = await this.findOrFail(id);
+    const tags = await this.personRepository.getPersonTags(id);
+    return mapPerson(person, tags.map(tag => mapTag(tag)));
   }
 
   async getStatistics(auth: AuthDto, id: string): Promise<PersonStatisticsResponseDto> {
@@ -189,7 +192,7 @@ export class PersonService extends BaseService {
   async update(auth: AuthDto, id: string, dto: PersonUpdateDto): Promise<PersonResponseDto> {
     await this.requireAccess({ auth, permission: Permission.PERSON_UPDATE, ids: [id] });
 
-    const { name, birthDate, isHidden, featureFaceAssetId: assetId, isFavorite, color } = dto;
+    const { name, birthDate, isHidden, featureFaceAssetId: assetId, isFavorite, color, description, tagIds } = dto;
     // TODO: set by faceId directly
     let faceId: string | undefined = undefined;
     if (assetId) {
@@ -210,13 +213,21 @@ export class PersonService extends BaseService {
       isHidden,
       isFavorite,
       color,
+      description,
     });
+
+    // Handle tags if provided
+    if (tagIds !== undefined) {
+      await this.personRepository.setPersonTags(id, tagIds);
+    }
 
     if (assetId) {
       await this.jobRepository.queue({ name: JobName.GENERATE_PERSON_THUMBNAIL, data: { id } });
     }
 
-    return mapPerson(person);
+    // Get updated person with tags for response
+    const tags = await this.personRepository.getPersonTags(id);
+    return mapPerson(person, tags.map(tag => mapTag(tag)));
   }
 
   async updateAll(auth: AuthDto, dto: PeopleUpdateDto): Promise<BulkIdResponseDto[]> {
@@ -229,6 +240,9 @@ export class PersonService extends BaseService {
           birthDate: person.birthDate,
           featureFaceAssetId: person.featureFaceAssetId,
           isFavorite: person.isFavorite,
+          color: person.color,
+          description: person.description,
+          tagIds: person.tagIds,
         });
         results.push({ id: person.id, success: true });
       } catch (error: Error | any) {
@@ -577,16 +591,44 @@ export class PersonService extends BaseService {
         }
 
         const update: Updateable<Person> & { id: string } = { id: primaryPerson.id };
+        let needsUpdate = false;
+        
         if (!primaryPerson.name && mergePerson.name) {
           update.name = mergePerson.name;
+          needsUpdate = true;
         }
 
         if (!primaryPerson.birthDate && mergePerson.birthDate) {
           update.birthDate = mergePerson.birthDate;
+          needsUpdate = true;
         }
 
-        if (Object.keys(update).length > 0) {
+        // Handle description concatenation (if no description override provided)
+        if (!dto.description) {
+          const descriptions = [primaryPerson.description, mergePerson.description]
+            .filter(desc => desc && desc.trim().length > 0);
+          if (descriptions.length > 0) {
+            update.description = descriptions.join('\n\n');
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
           primaryPerson = await this.personRepository.update(update);
+        }
+
+        // Handle tag union - merge tags from both persons
+        const primaryTags = await this.personRepository.getPersonTags(id);
+        const mergeTags = await this.personRepository.getPersonTags(mergeId);
+        const combinedTagIds = new Set([
+          ...primaryTags.map(tag => tag.id),
+          ...mergeTags.map(tag => tag.id)
+        ]);
+        await this.personRepository.setPersonTags(id, [...combinedTagIds]);
+
+        // Apply description override if provided
+        if (dto.description !== undefined) {
+          await this.personRepository.update({ id, description: dto.description });
         }
 
         const mergeName = mergePerson.name || mergePerson.id;
