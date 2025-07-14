@@ -35,6 +35,7 @@
   import { TimelineManager } from '$lib/managers/timeline-manager/timeline-manager.svelte';
   import type { TimelineAsset } from '$lib/managers/timeline-manager/types';
   import PersonEditBirthDateModal from '$lib/modals/PersonEditBirthDateModal.svelte';
+  import PersonEditModal from '$lib/modals/PersonEditModal.svelte';
   import PersonMergeSuggestionModal from '$lib/modals/PersonMergeSuggestionModal.svelte';
   import { AssetInteraction } from '$lib/stores/asset-interaction.svelte';
   import { assetViewingStore } from '$lib/stores/asset-viewing.store';
@@ -61,6 +62,7 @@
     mdiEyeOutline,
     mdiHeartMinusOutline,
     mdiHeartOutline,
+    mdiPencil,
     mdiPlus,
   } from '@mdi/js';
   import { DateTime } from 'luxon';
@@ -339,6 +341,22 @@
     });
   };
 
+  const handleEditPerson = async () => {
+    const updatedPerson = await modalManager.show(PersonEditModal, { person });
+
+    if (!updatedPerson) {
+      return;
+    }
+
+    person = updatedPerson;
+    people = people.map((person: PersonResponseDto) => {
+      if (person.id === updatedPerson.id) {
+        return updatedPerson;
+      }
+      return person;
+    });
+  };
+
   const handleGoBack = async () => {
     viewMode = PersonPageViewMode.VIEW_ASSETS;
     if ($page.url.searchParams.has(QueryParameter.ACTION)) {
@@ -554,6 +572,11 @@
               text={$t('select_featured_photo')}
               icon={mdiAccountBoxOutline}
               onClick={() => (viewMode = PersonPageViewMode.SELECT_PERSON)}
+            />
+            <MenuOption
+              text={$t('edit_person')}
+              icon={mdiPencil}
+              onClick={handleEditPerson}
             />
             <MenuOption
               text={person.isHidden ? $t('unhide_person') : $t('hide_person')}

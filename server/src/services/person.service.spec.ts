@@ -23,6 +23,8 @@ const responseDto: PersonResponseDto = {
   updatedAt: expect.any(Date),
   isFavorite: false,
   color: expect.any(String),
+  description: '',
+  tags: [],
 };
 
 const statistics = { assets: 3 };
@@ -62,6 +64,10 @@ describe(PersonService.name, () => {
 
   beforeEach(() => {
     ({ sut, mocks } = newTestService(PersonService));
+    // Setup default mocks for new person tag methods
+    mocks.person.getPersonTags.mockResolvedValue([]);
+    mocks.person.setPersonTags.mockResolvedValue();
+    mocks.person.getPersonsWithTags.mockResolvedValue([]);
   });
 
   it('should be defined', () => {
@@ -145,6 +151,7 @@ describe(PersonService.name, () => {
 
     it('should get a person by id', async () => {
       mocks.person.getById.mockResolvedValue(personStub.withName);
+      mocks.person.getPersonTags.mockResolvedValue([]);
       mocks.access.person.checkOwnerAccess.mockResolvedValue(new Set(['person-1']));
       await expect(sut.getById(authStub.admin, 'person-1')).resolves.toEqual(responseDto);
       expect(mocks.person.getById).toHaveBeenCalledWith('person-1');

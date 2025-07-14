@@ -20,6 +20,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   hidden: Object.freeze({
     id: 'person-1',
@@ -36,6 +37,7 @@ export const personStub = {
     isHidden: true,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   withName: Object.freeze({
     id: 'person-1',
@@ -52,6 +54,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   withBirthDate: Object.freeze({
     id: 'person-1',
@@ -68,6 +71,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   noThumbnail: Object.freeze({
     id: 'person-1',
@@ -84,6 +88,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   newThumbnail: Object.freeze({
     id: 'person-1',
@@ -100,6 +105,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   primaryPerson: Object.freeze({
     id: 'person-1',
@@ -116,6 +122,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   mergePerson: Object.freeze({
     id: 'person-2',
@@ -132,6 +139,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   randomPerson: Object.freeze({
     id: 'person-3',
@@ -148,6 +156,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: false,
     color: 'red',
+    description: '',
   }),
   isFavorite: Object.freeze({
     id: 'person-4',
@@ -164,6 +173,7 @@ export const personStub = {
     isHidden: false,
     isFavorite: true,
     color: 'red',
+    description: '',
   }),
 };
 

@@ -20,7 +20,7 @@
     onClose: (people?: [PersonResponseDto, PersonResponseDto]) => void;
   }
 
-  let {
+  let { 
     personToMerge = $bindable(),
     personToBeMergedInto = $bindable(),
     potentialMergePeople = $bindable(),
@@ -28,8 +28,16 @@
   }: Props = $props();
 
   let choosePersonToMerge = $state(false);
+  let combinedDescription = $state('');
 
   const title = personToBeMergedInto.name;
+
+  // Calculate combined metadata preview
+  $effect(() => {
+    const descriptions = [personToBeMergedInto.description, personToMerge.description]
+      .filter(desc => desc && desc.trim().length > 0);
+    combinedDescription = descriptions.join('\n\n');
+  });
 
   const changePersonToMerge = (newPerson: PersonResponseDto) => {
     const index = potentialMergePeople.indexOf(newPerson);
@@ -41,7 +49,10 @@
     try {
       await mergePerson({
         id: personToBeMergedInto.id,
-        mergePersonDto: { ids: [personToMerge.id] },
+        mergePersonDto: { 
+          ids: [personToMerge.id],
+          description: combinedDescription || undefined,
+        },
       });
 
       notificationController.show({
@@ -136,6 +147,42 @@
     <div class="flex px-4 pt-2">
       <p class="text-sm text-gray-500 dark:text-gray-300">{$t('they_will_be_merged_together')}</p>
     </div>
+
+    <!-- Combined metadata preview -->
+    {#if combinedDescription || (personToBeMergedInto.tags?.length > 0) || (personToMerge.tags?.length > 0)}
+      <div class="px-4 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">{$t('combined_metadata')}</h2>
+        
+        {#if combinedDescription}
+          <div class="mb-3">
+            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">{$t('description')}:</label>
+            <textarea
+              bind:value={combinedDescription}
+              class="w-full mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-gray-50 dark:bg-gray-800"
+              rows="3"
+              placeholder={$t('combined_description_placeholder')}
+            ></textarea>
+          </div>
+        {/if}
+
+        <!-- Combined tags preview -->
+        {@const primaryTags = personToBeMergedInto.tags || []}
+        {@const mergeTags = personToMerge.tags || []}
+        {@const allTagIds = new Set([...primaryTags.map(t => t.id), ...mergeTags.map(t => t.id)])}
+        {#if allTagIds.size > 0}
+          <div>
+            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">{$t('combined_tags')}:</label>
+            <div class="flex flex-wrap gap-1 mt-1">
+              {#each [...primaryTags, ...mergeTags] as tag (tag.id)}
+                <span class="inline-block px-2 py-1 bg-primary text-white text-xs rounded">
+                  {tag.value}
+                </span>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
   </ModalBody>
 
   <ModalFooter>
