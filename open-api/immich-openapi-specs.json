@@ -4568,6 +4568,17 @@
             }
           },
           {
+            "name": "distanceThreshold",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0.1,
+              "maximum": 2,
+              "default": 0.1,
+              "type": "number"
+            }
+          },
+          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -4601,13 +4612,6 @@
         ],
         "responses": {
           "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PeopleResponseDto"
-                }
-              }
-            },
             "description": ""
           }
         },
@@ -5254,16 +5258,6 @@
       "post": {
         "operationId": "searchSmart",
         "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SmartSearchDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "content": {
@@ -9257,6 +9251,11 @@
             ],
             "nullable": true
           },
+          "score": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
           "sourceType": {
             "allOf": [
               {
@@ -9331,6 +9330,11 @@
           },
           "imageWidth": {
             "type": "integer"
+          },
+          "score": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
           },
           "sourceType": {
             "allOf": [
@@ -9671,6 +9675,9 @@
             "deprecated": true,
             "description": "This property was deprecated in v1.113.0",
             "type": "boolean"
+          },
+          "similarityScore": {
+            "type": "number"
           },
           "stack": {
             "allOf": [
@@ -11002,6 +11009,10 @@
       },
       "MergePersonDto": {
         "properties": {
+          "description": {
+            "description": "Combined description for merged person (optional override)",
+            "type": "string"
+          },
           "ids": {
             "items": {
               "format": "uuid",
@@ -11495,32 +11506,6 @@
         ],
         "type": "object"
       },
-      "PeopleResponseDto": {
-        "properties": {
-          "hasNextPage": {
-            "description": "This property was added in v1.110.0",
-            "type": "boolean"
-          },
-          "hidden": {
-            "type": "integer"
-          },
-          "people": {
-            "items": {
-              "$ref": "#/components/schemas/PersonResponseDto"
-            },
-            "type": "array"
-          },
-          "total": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "hidden",
-          "people",
-          "total"
-        ],
-        "type": "object"
-      },
       "PeopleUpdate": {
         "properties": {
           "enabled": {
@@ -11558,6 +11543,10 @@
             "nullable": true,
             "type": "string"
           },
+          "description": {
+            "description": "Person description",
+            "type": "string"
+          },
           "featureFaceAssetId": {
             "description": "Asset is used to get the feature face thumbnail.",
             "format": "uuid",
@@ -11577,6 +11566,14 @@
           "name": {
             "description": "Person name.",
             "type": "string"
+          },
+          "tagIds": {
+            "description": "Tags associated with the person",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -11685,6 +11682,10 @@
             "nullable": true,
             "type": "string"
           },
+          "description": {
+            "description": "Person description",
+            "type": "string"
+          },
           "isFavorite": {
             "type": "boolean"
           },
@@ -11695,6 +11696,14 @@
           "name": {
             "description": "Person name.",
             "type": "string"
+          },
+          "tagIds": {
+            "description": "Tags associated with the person",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -11710,6 +11719,9 @@
             "description": "This property was added in v1.126.0",
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -11722,6 +11734,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/TagResponseDto"
+            },
+            "type": "array"
           },
           "thumbnailPath": {
             "type": "string"
@@ -11764,6 +11782,10 @@
             "nullable": true,
             "type": "string"
           },
+          "description": {
+            "description": "Person description",
+            "type": "string"
+          },
           "featureFaceAssetId": {
             "description": "Asset is used to get the feature face thumbnail.",
             "format": "uuid",
@@ -11779,6 +11801,14 @@
           "name": {
             "description": "Person name.",
             "type": "string"
+          },
+          "tagIds": {
+            "description": "Tags associated with the person",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -11792,6 +11822,9 @@
           },
           "color": {
             "description": "This property was added in v1.126.0",
+            "type": "string"
+          },
+          "description": {
             "type": "string"
           },
           "faces": {
@@ -11812,6 +11845,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/TagResponseDto"
+            },
+            "type": "array"
           },
           "thumbnailPath": {
             "type": "string"
@@ -12993,153 +13032,6 @@
           "email",
           "name",
           "password"
-        ],
-        "type": "object"
-      },
-      "SmartSearchDto": {
-        "properties": {
-          "albumIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "city": {
-            "nullable": true,
-            "type": "string"
-          },
-          "country": {
-            "nullable": true,
-            "type": "string"
-          },
-          "createdAfter": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBefore": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "deviceId": {
-            "type": "string"
-          },
-          "isEncoded": {
-            "type": "boolean"
-          },
-          "isFavorite": {
-            "type": "boolean"
-          },
-          "isMotion": {
-            "type": "boolean"
-          },
-          "isNotInAlbum": {
-            "type": "boolean"
-          },
-          "isOffline": {
-            "type": "boolean"
-          },
-          "language": {
-            "type": "string"
-          },
-          "lensModel": {
-            "nullable": true,
-            "type": "string"
-          },
-          "libraryId": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "make": {
-            "type": "string"
-          },
-          "model": {
-            "nullable": true,
-            "type": "string"
-          },
-          "page": {
-            "minimum": 1,
-            "type": "number"
-          },
-          "personIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "query": {
-            "type": "string"
-          },
-          "rating": {
-            "maximum": 5,
-            "minimum": -1,
-            "type": "number"
-          },
-          "size": {
-            "maximum": 1000,
-            "minimum": 1,
-            "type": "number"
-          },
-          "state": {
-            "nullable": true,
-            "type": "string"
-          },
-          "tagIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "takenAfter": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "takenBefore": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "trashedAfter": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "trashedBefore": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AssetTypeEnum"
-              }
-            ]
-          },
-          "updatedAfter": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBefore": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "visibility": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AssetVisibility"
-              }
-            ]
-          },
-          "withDeleted": {
-            "type": "boolean"
-          },
-          "withExif": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "query"
         ],
         "type": "object"
       },

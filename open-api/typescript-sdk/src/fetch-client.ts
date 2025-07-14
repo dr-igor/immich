@@ -284,26 +284,8 @@ export type AssetFaceWithoutPersonResponseDto = {
     id: string;
     imageHeight: number;
     imageWidth: number;
+    score?: number | null;
     sourceType?: SourceType;
-};
-export type PersonWithFacesResponseDto = {
-    birthDate: string | null;
-    /** This property was added in v1.126.0 */
-    color?: string;
-    faces: AssetFaceWithoutPersonResponseDto[];
-    id: string;
-    /** This property was added in v1.126.0 */
-    isFavorite?: boolean;
-    isHidden: boolean;
-    name: string;
-    thumbnailPath: string;
-    /** This property was added in v1.107.0 */
-    updatedAt?: string;
-};
-export type AssetStackResponseDto = {
-    assetCount: number;
-    id: string;
-    primaryAssetId: string;
 };
 export type TagResponseDto = {
     color?: string;
@@ -313,6 +295,27 @@ export type TagResponseDto = {
     parentId?: string;
     updatedAt: string;
     value: string;
+};
+export type PersonWithFacesResponseDto = {
+    birthDate: string | null;
+    /** This property was added in v1.126.0 */
+    color?: string;
+    description?: string;
+    faces: AssetFaceWithoutPersonResponseDto[];
+    id: string;
+    /** This property was added in v1.126.0 */
+    isFavorite?: boolean;
+    isHidden: boolean;
+    name: string;
+    tags?: TagResponseDto[];
+    thumbnailPath: string;
+    /** This property was added in v1.107.0 */
+    updatedAt?: string;
+};
+export type AssetStackResponseDto = {
+    assetCount: number;
+    id: string;
+    primaryAssetId: string;
 };
 export type AssetResponseDto = {
     /** base64 encoded sha1 hash */
@@ -345,6 +348,7 @@ export type AssetResponseDto = {
     people?: PersonWithFacesResponseDto[];
     /** This property was deprecated in v1.113.0 */
     resized?: boolean;
+    similarityScore?: number;
     stack?: (AssetStackResponseDto) | null;
     tags?: TagResponseDto[];
     thumbhash: string | null;
@@ -591,11 +595,13 @@ export type PersonResponseDto = {
     birthDate: string | null;
     /** This property was added in v1.126.0 */
     color?: string;
+    description?: string;
     id: string;
     /** This property was added in v1.126.0 */
     isFavorite?: boolean;
     isHidden: boolean;
     name: string;
+    tags?: TagResponseDto[];
     thumbnailPath: string;
     /** This property was added in v1.107.0 */
     updatedAt?: string;
@@ -609,6 +615,7 @@ export type AssetFaceResponseDto = {
     imageHeight: number;
     imageWidth: number;
     person: (PersonResponseDto) | null;
+    score?: number | null;
     sourceType?: SourceType;
 };
 export type AssetFaceCreateDto = {
@@ -789,29 +796,28 @@ export type PartnerResponseDto = {
 export type UpdatePartnerDto = {
     inTimeline: boolean;
 };
-export type PeopleResponseDto = {
-    /** This property was added in v1.110.0 */
-    hasNextPage?: boolean;
-    hidden: number;
-    people: PersonResponseDto[];
-    total: number;
-};
 export type PersonCreateDto = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
     birthDate?: string | null;
     color?: string | null;
+    /** Person description */
+    description?: string;
     isFavorite?: boolean;
     /** Person visibility */
     isHidden?: boolean;
     /** Person name. */
     name?: string;
+    /** Tags associated with the person */
+    tagIds?: string[];
 };
 export type PeopleUpdateItem = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
     birthDate?: string | null;
     color?: string | null;
+    /** Person description */
+    description?: string;
     /** Asset is used to get the feature face thumbnail. */
     featureFaceAssetId?: string;
     /** Person id. */
@@ -821,6 +827,8 @@ export type PeopleUpdateItem = {
     isHidden?: boolean;
     /** Person name. */
     name?: string;
+    /** Tags associated with the person */
+    tagIds?: string[];
 };
 export type PeopleUpdateDto = {
     people: PeopleUpdateItem[];
@@ -830,6 +838,8 @@ export type PersonUpdateDto = {
     Note: the mobile app cannot currently set the birth date to null. */
     birthDate?: string | null;
     color?: string | null;
+    /** Person description */
+    description?: string;
     /** Asset is used to get the feature face thumbnail. */
     featureFaceAssetId?: string;
     isFavorite?: boolean;
@@ -837,8 +847,12 @@ export type PersonUpdateDto = {
     isHidden?: boolean;
     /** Person name. */
     name?: string;
+    /** Tags associated with the person */
+    tagIds?: string[];
 };
 export type MergePersonDto = {
+    /** Combined description for merged person (optional override) */
+    description?: string;
     ids: string[];
 };
 export type AssetFaceUpdateItem = {
@@ -969,41 +983,6 @@ export type RandomSearchDto = {
     withExif?: boolean;
     withPeople?: boolean;
     withStacked?: boolean;
-};
-export type SmartSearchDto = {
-    albumIds?: string[];
-    city?: string | null;
-    country?: string | null;
-    createdAfter?: string;
-    createdBefore?: string;
-    deviceId?: string;
-    isEncoded?: boolean;
-    isFavorite?: boolean;
-    isMotion?: boolean;
-    isNotInAlbum?: boolean;
-    isOffline?: boolean;
-    language?: string;
-    lensModel?: string | null;
-    libraryId?: string | null;
-    make?: string;
-    model?: string | null;
-    page?: number;
-    personIds?: string[];
-    query: string;
-    rating?: number;
-    size?: number;
-    state?: string | null;
-    tagIds?: string[];
-    takenAfter?: string;
-    takenBefore?: string;
-    trashedAfter?: string;
-    trashedBefore?: string;
-    "type"?: AssetTypeEnum;
-    updatedAfter?: string;
-    updatedBefore?: string;
-    visibility?: AssetVisibility;
-    withDeleted?: boolean;
-    withExif?: boolean;
 };
 export type StatisticsSearchDto = {
     albumIds?: string[];
@@ -2769,19 +2748,18 @@ export function updatePartner({ id, updatePartnerDto }: {
         body: updatePartnerDto
     })));
 }
-export function getAllPeople({ closestAssetId, closestPersonId, page, size, withHidden }: {
+export function getAllPeople({ closestAssetId, closestPersonId, distanceThreshold, page, size, withHidden }: {
     closestAssetId?: string;
     closestPersonId?: string;
+    distanceThreshold?: number;
     page?: number;
     size?: number;
     withHidden?: boolean;
 }, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: PeopleResponseDto;
-    }>(`/people${QS.query(QS.explode({
+    return oazapfts.ok(oazapfts.fetchText(`/people${QS.query(QS.explode({
         closestAssetId,
         closestPersonId,
+        distanceThreshold,
         page,
         size,
         withHidden
@@ -2948,17 +2926,14 @@ export function searchRandom({ randomSearchDto }: {
         body: randomSearchDto
     })));
 }
-export function searchSmart({ smartSearchDto }: {
-    smartSearchDto: SmartSearchDto;
-}, opts?: Oazapfts.RequestOpts) {
+export function searchSmart(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: SearchResponseDto;
-    }>("/search/smart", oazapfts.json({
+    }>("/search/smart", {
         ...opts,
-        method: "POST",
-        body: smartSearchDto
-    })));
+        method: "POST"
+    }));
 }
 export function searchAssetStatistics({ statisticsSearchDto }: {
     statisticsSearchDto: StatisticsSearchDto;

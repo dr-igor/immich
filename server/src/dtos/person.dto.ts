@@ -155,7 +155,7 @@ export class PersonWithFacesResponseDto extends PersonResponseDto {
 }
 
 export class SimilarPersonResponseDto extends PersonResponseDto {
-  @ApiProperty({ format: 'float', nullable: true, description: 'Distance from query face (when using facesSimilarTo)' })
+  @ApiProperty({ format: 'double', nullable: true, description: 'Distance from query face (when using facesSimilarTo)' })
   distance?: number | null;
 }
 
@@ -176,7 +176,7 @@ export class AssetFaceWithoutPersonResponseDto {
   boundingBoxY2!: number;
   @ApiProperty({ enum: SourceType, enumName: 'SourceType' })
   sourceType?: SourceType;
-  @ApiProperty({ format: 'float', nullable: true })
+  @ApiProperty({ format: 'double', nullable: true })
   score?: number | null;
 }
 
