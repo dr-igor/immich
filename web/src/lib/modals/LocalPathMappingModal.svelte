@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { localPathMappings } from '$lib/utils/local-path-mappings';
+  import { addMapping, localPathMappings, removeMapping } from '$lib/utils/local-path-mappings';
   import { Button, HStack, Modal, ModalBody, ModalFooter } from '@immich/ui';
   import { mdiLinkVariant } from '@mdi/js';
   import { t } from 'svelte-i18n';
@@ -22,16 +22,12 @@
 
   function onsubmit(event: Event) {
     event.preventDefault();
-    const mappings = localPathMappings.current.filter((m) => m.remotePath !== remotePath);
-    if (localPath.trim()) {
-      mappings.push({ remotePath, localPath: localPath.trim() });
-    }
-    localPathMappings.current = mappings;
+    addMapping(remotePath, localPath.trim());
     onClose();
   }
 
   function handleRemove() {
-    localPathMappings.current = localPathMappings.current.filter((m) => m.remotePath !== remotePath);
+    removeMapping(remotePath);
     onClose();
   }
 
