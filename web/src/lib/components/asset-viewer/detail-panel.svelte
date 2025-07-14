@@ -17,6 +17,7 @@
   import { delay, isFlipped } from '$lib/utils/asset-utils';
   import { getByteUnitString } from '$lib/utils/byte-units';
   import { handleError } from '$lib/utils/handle-error';
+  import { getLocalPathForRemote } from '$lib/utils/local-path-mappings';
   import { getMetadataSearchQuery } from '$lib/utils/metadata-search';
   import { fromISODateTime, fromISODateTimeUTC } from '$lib/utils/timeline-util';
   import { getParentPath } from '$lib/utils/tree-utils';
@@ -33,10 +34,12 @@
     mdiCalendar,
     mdiCameraIris,
     mdiClose,
+    mdiContentCopy,
     mdiEye,
     mdiEyeOff,
     mdiImageOutline,
     mdiInformationOutline,
+    mdiLink,
     mdiPencil,
     mdiPlus,
   } from '@mdi/js';
@@ -135,13 +138,16 @@
     showEditFaces = false;
   };
 
+  const getStrippedOriginalPath = (asset: AssetResponseDto): string => {
+    if (asset.originalPath.startsWith('/')) {
+      return asset.originalPath.slice(1);
+    }
+    return asset.originalPath;
+  };
+
   const getAssetFolderHref = (asset: AssetResponseDto) => {
     const folderUrl = new URL(AppRoute.FOLDERS, globalThis.location.href);
-    // Remove the last part of the path to get the parent path
-    let assetParentPath = getParentPath(asset.originalPath);
-    if (assetParentPath.startsWith('/')) {
-      assetParentPath = assetParentPath.slice(1);
-    }
+    let assetParentPath = getParentPath(getStrippedOriginalPath(asset));
     folderUrl.searchParams.set(QueryParameter.PATH, assetParentPath);
     return folderUrl.href;
   };
@@ -156,6 +162,14 @@
       await updateAsset({ id: asset.id, updateAssetDto: { dateTimeOriginal } });
     } catch (error) {
       handleError(error, $t('errors.unable_to_change_date'));
+    }
+  }
+
+  let localFileLink = $derived(getLocalPathForRemote(getStrippedOriginalPath(asset)));
+
+  function copyLocalPath() {
+    if (localFileLink) {
+      navigator.clipboard.writeText(localFileLink.replace('file://', ''));
     }
   }
 </script>
@@ -381,9 +395,8 @@
       <div><Icon path={mdiImageOutline} size="24" /></div>
 
       <div>
-        <p class="break-all flex place-items-center gap-2 whitespace-pre-wrap">
-          {asset.originalFileName}
-          {#if isOwner}
+        {#if isOwner}
+          <div class="flex items-center">
             <IconButton
               icon={mdiInformationOutline}
               aria-label={$t('show_file_location')}
@@ -393,7 +406,30 @@
               variant="ghost"
               onclick={toggleAssetPath}
             />
-          {/if}
+            {#if localFileLink}
+              <IconButton
+                icon={mdiContentCopy}
+                aria-label={$t('copy_local_file_path')}
+                size="small"
+                shape="round"
+                color="secondary"
+                variant="ghost"
+                onclick={copyLocalPath}
+              />
+              <IconButton
+                icon={mdiLink}
+                aria-label={$t('open_local_file')}
+                size="small"
+                shape="round"
+                color="secondary"
+                variant="ghost"
+                onclick={() => window.open(localFileLink, '_blank')}
+              />
+            {/if}
+          </div>
+        {/if}
+        <p class="break-all flex place-items-center gap-2 whitespace-pre-wrap">
+          {asset.originalFileName}
         </p>
         {#if showAssetPath}
           <p
