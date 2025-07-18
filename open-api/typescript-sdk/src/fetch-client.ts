@@ -796,6 +796,13 @@ export type PartnerResponseDto = {
 export type UpdatePartnerDto = {
     inTimeline: boolean;
 };
+export type PeopleResponseDto = {
+    /** This property was added in v1.110.0 */
+    hasNextPage?: boolean;
+    hidden: number;
+    people: PersonResponseDto[];
+    total: number;
+};
 export type PersonCreateDto = {
     /** Person date of birth.
     Note: the mobile app cannot currently set the birth date to null. */
@@ -983,6 +990,41 @@ export type RandomSearchDto = {
     withExif?: boolean;
     withPeople?: boolean;
     withStacked?: boolean;
+};
+export type SmartSearchDto = {
+    albumIds?: string[];
+    city?: string | null;
+    country?: string | null;
+    createdAfter?: string;
+    createdBefore?: string;
+    deviceId?: string;
+    isEncoded?: boolean;
+    isFavorite?: boolean;
+    isMotion?: boolean;
+    isNotInAlbum?: boolean;
+    isOffline?: boolean;
+    language?: string;
+    lensModel?: string | null;
+    libraryId?: string | null;
+    make?: string;
+    model?: string | null;
+    page?: number;
+    personIds?: string[];
+    query: string;
+    rating?: number;
+    size?: number;
+    state?: string | null;
+    tagIds?: string[];
+    takenAfter?: string;
+    takenBefore?: string;
+    trashedAfter?: string;
+    trashedBefore?: string;
+    "type"?: AssetTypeEnum;
+    updatedAfter?: string;
+    updatedBefore?: string;
+    visibility?: AssetVisibility;
+    withDeleted?: boolean;
+    withExif?: boolean;
 };
 export type StatisticsSearchDto = {
     albumIds?: string[];
@@ -2756,7 +2798,10 @@ export function getAllPeople({ closestAssetId, closestPersonId, distanceThreshol
     size?: number;
     withHidden?: boolean;
 }, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText(`/people${QS.query(QS.explode({
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: PeopleResponseDto;
+    }>(`/people${QS.query(QS.explode({
         closestAssetId,
         closestPersonId,
         distanceThreshold,
@@ -2926,14 +2971,17 @@ export function searchRandom({ randomSearchDto }: {
         body: randomSearchDto
     })));
 }
-export function searchSmart(opts?: Oazapfts.RequestOpts) {
+export function searchSmart({ smartSearchDto }: {
+    smartSearchDto: SmartSearchDto;
+}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: SearchResponseDto;
-    }>("/search/smart", {
+    }>("/search/smart", oazapfts.json({
         ...opts,
-        method: "POST"
-    }));
+        method: "POST",
+        body: smartSearchDto
+    })));
 }
 export function searchAssetStatistics({ statisticsSearchDto }: {
     statisticsSearchDto: StatisticsSearchDto;
