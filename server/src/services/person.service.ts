@@ -184,9 +184,17 @@ export class PersonService extends BaseService {
       isHidden: dto.isHidden,
       isFavorite: dto.isFavorite,
       color: dto.color,
+      description: dto.description,
     });
 
-    return mapPerson(person);
+    // Handle tags if provided
+    if (dto.tagIds && dto.tagIds.length > 0) {
+      await this.personRepository.setPersonTags(person.id, dto.tagIds);
+    }
+
+    // Get created person with tags for response
+    const tags = await this.personRepository.getPersonTags(person.id);
+    return mapPerson(person, tags.map(tag => mapTag(tag)));
   }
 
   async update(auth: AuthDto, id: string, dto: PersonUpdateDto): Promise<PersonResponseDto> {
@@ -240,7 +248,6 @@ export class PersonService extends BaseService {
           birthDate: person.birthDate,
           featureFaceAssetId: person.featureFaceAssetId,
           isFavorite: person.isFavorite,
-          color: person.color,
           description: person.description,
           tagIds: person.tagIds,
         });
@@ -591,16 +598,13 @@ export class PersonService extends BaseService {
         }
 
         const update: Updateable<Person> & { id: string } = { id: primaryPerson.id };
-        let needsUpdate = false;
         
         if (!primaryPerson.name && mergePerson.name) {
           update.name = mergePerson.name;
-          needsUpdate = true;
         }
 
         if (!primaryPerson.birthDate && mergePerson.birthDate) {
           update.birthDate = mergePerson.birthDate;
-          needsUpdate = true;
         }
 
         // Handle description concatenation (if no description override provided)
@@ -609,11 +613,10 @@ export class PersonService extends BaseService {
             .filter(desc => desc && desc.trim().length > 0);
           if (descriptions.length > 0) {
             update.description = descriptions.join('\n\n');
-            needsUpdate = true;
           }
         }
 
-        if (needsUpdate) {
+        if (Object.keys(update).length > 1) {
           primaryPerson = await this.personRepository.update(update);
         }
 

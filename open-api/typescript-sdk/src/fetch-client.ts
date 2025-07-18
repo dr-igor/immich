@@ -284,8 +284,26 @@ export type AssetFaceWithoutPersonResponseDto = {
     id: string;
     imageHeight: number;
     imageWidth: number;
-    score?: number | null;
     sourceType?: SourceType;
+};
+export type PersonWithFacesResponseDto = {
+    birthDate: string | null;
+    /** This property was added in v1.126.0 */
+    color?: string;
+    faces: AssetFaceWithoutPersonResponseDto[];
+    id: string;
+    /** This property was added in v1.126.0 */
+    isFavorite?: boolean;
+    isHidden: boolean;
+    name: string;
+    thumbnailPath: string;
+    /** This property was added in v1.107.0 */
+    updatedAt?: string;
+};
+export type AssetStackResponseDto = {
+    assetCount: number;
+    id: string;
+    primaryAssetId: string;
 };
 export type TagResponseDto = {
     color?: string;
@@ -295,27 +313,6 @@ export type TagResponseDto = {
     parentId?: string;
     updatedAt: string;
     value: string;
-};
-export type PersonWithFacesResponseDto = {
-    birthDate: string | null;
-    /** This property was added in v1.126.0 */
-    color?: string;
-    description?: string;
-    faces: AssetFaceWithoutPersonResponseDto[];
-    id: string;
-    /** This property was added in v1.126.0 */
-    isFavorite?: boolean;
-    isHidden: boolean;
-    name: string;
-    tags?: TagResponseDto[];
-    thumbnailPath: string;
-    /** This property was added in v1.107.0 */
-    updatedAt?: string;
-};
-export type AssetStackResponseDto = {
-    assetCount: number;
-    id: string;
-    primaryAssetId: string;
 };
 export type AssetResponseDto = {
     /** base64 encoded sha1 hash */
@@ -348,7 +345,6 @@ export type AssetResponseDto = {
     people?: PersonWithFacesResponseDto[];
     /** This property was deprecated in v1.113.0 */
     resized?: boolean;
-    similarityScore?: number;
     stack?: (AssetStackResponseDto) | null;
     tags?: TagResponseDto[];
     thumbhash: string | null;
@@ -615,7 +611,6 @@ export type AssetFaceResponseDto = {
     imageHeight: number;
     imageWidth: number;
     person: (PersonResponseDto) | null;
-    score?: number | null;
     sourceType?: SourceType;
 };
 export type AssetFaceCreateDto = {
@@ -823,8 +818,6 @@ export type PeopleUpdateItem = {
     Note: the mobile app cannot currently set the birth date to null. */
     birthDate?: string | null;
     color?: string | null;
-    /** Person description */
-    description?: string;
     /** Asset is used to get the feature face thumbnail. */
     featureFaceAssetId?: string;
     /** Person id. */
@@ -834,8 +827,6 @@ export type PeopleUpdateItem = {
     isHidden?: boolean;
     /** Person name. */
     name?: string;
-    /** Tags associated with the person */
-    tagIds?: string[];
 };
 export type PeopleUpdateDto = {
     people: PeopleUpdateItem[];
@@ -845,8 +836,6 @@ export type PersonUpdateDto = {
     Note: the mobile app cannot currently set the birth date to null. */
     birthDate?: string | null;
     color?: string | null;
-    /** Person description */
-    description?: string;
     /** Asset is used to get the feature face thumbnail. */
     featureFaceAssetId?: string;
     isFavorite?: boolean;
@@ -854,8 +843,6 @@ export type PersonUpdateDto = {
     isHidden?: boolean;
     /** Person name. */
     name?: string;
-    /** Tags associated with the person */
-    tagIds?: string[];
 };
 export type MergePersonDto = {
     /** Combined description for merged person (optional override) */
@@ -2790,10 +2777,9 @@ export function updatePartner({ id, updatePartnerDto }: {
         body: updatePartnerDto
     })));
 }
-export function getAllPeople({ closestAssetId, closestPersonId, distanceThreshold, page, size, withHidden }: {
+export function getAllPeople({ closestAssetId, closestPersonId, page, size, withHidden }: {
     closestAssetId?: string;
     closestPersonId?: string;
-    distanceThreshold?: number;
     page?: number;
     size?: number;
     withHidden?: boolean;
@@ -2804,7 +2790,6 @@ export function getAllPeople({ closestAssetId, closestPersonId, distanceThreshol
     }>(`/people${QS.query(QS.explode({
         closestAssetId,
         closestPersonId,
-        distanceThreshold,
         page,
         size,
         withHidden

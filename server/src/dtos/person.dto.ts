@@ -7,7 +7,7 @@ import { AssetFace, Person } from 'src/database';
 import { AssetFaces } from 'src/db';
 import { PropertyLifecycle } from 'src/decorators';
 import { AuthDto } from 'src/dtos/auth.dto';
-import { TagResponseDto, mapTag } from 'src/dtos/tag.dto';
+import { TagResponseDto } from 'src/dtos/tag.dto';
 import { SourceType } from 'src/enum';
 import { asDateString } from 'src/utils/date';
 import {
@@ -155,7 +155,7 @@ export class PersonWithFacesResponseDto extends PersonResponseDto {
 }
 
 export class SimilarPersonResponseDto extends PersonResponseDto {
-  @ApiProperty({ format: 'double', nullable: true, description: 'Distance from query face (when using facesSimilarTo)' })
+  @ApiProperty({ format: 'float', nullable: true, description: 'Distance from query face (when using facesSimilarTo)' })
   distance?: number | null;
 }
 
@@ -176,7 +176,7 @@ export class AssetFaceWithoutPersonResponseDto {
   boundingBoxY2!: number;
   @ApiProperty({ enum: SourceType, enumName: 'SourceType' })
   sourceType?: SourceType;
-  @ApiProperty({ format: 'double', nullable: true })
+  @ApiProperty({ format: 'float', nullable: true })
   score?: number | null;
 }
 
@@ -268,8 +268,8 @@ export function mapPerson(person: Person, tags?: TagResponseDto[]): PersonRespon
     isFavorite: person.isFavorite,
     color: person.color ?? undefined,
     updatedAt: person.updatedAt,
-    description: person.description,
-    tags: tags,
+    description: person.description ?? '',
+    tags: tags ?? [],
   };
 }
 
