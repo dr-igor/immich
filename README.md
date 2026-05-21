@@ -16,9 +16,11 @@ I would like to layer on some additional features and customizations. I do not d
 
 - Tags for "Person" entities.
 - Comments/notes for "Person" entities.
+- Show folder path in title bar in folder view.
 - "Similar faces" section on the person view, using the existing face embedding vectors.
   - I think the "edit face" feature already does a search like this.
   - _Follow up_: Initiate people merge by dragging one avatar/badge onto another.
+  - Merge similar people in the info tab of image view
 - "Person" badges on each photo in the gallery/timeline views.
 - A new folders view that uses the existing timeline/gallery view, instead of a custom view implementation.
 - Bulk resolve duplicates between folders.
@@ -47,6 +49,7 @@ The driving constraint: **upstream must remain mergeable forever, with minimum h
 - `main` tracks `origin/main` (immich-app/immich) **unmodified**. Never commit fork work to `main`. Fast-forward only.
 - `fork-main` is the integration branch. All fork work lives here or in feature branches that merge into it.
 - Feature branches branch from `fork-main` and merge back into `fork-main`. Don't branch from `main`.
+- Upstream is merged into `fork-main` primarily at `main`'s release tags, but can be merged between releases if needed (e.g. a critical bugfix).
 - Tag fork releases (e.g. `fork-v2.7.5+1`) on `fork-main` so you can bisect later.
 
 ### Sync cadence
@@ -111,3 +114,9 @@ If upstream changes an area you depend on so fundamentally that re-applying the 
 - Stop. Re-evaluate whether the feature can be rebuilt _purely additively_ against the new upstream shape (a side module, a sidecar service, a plugin).
 - If the answer is yes, throw away the old fork patch and start fresh; carrying a broken patch across merges is more expensive than re-implementing.
 - Record the decision in `dev-docs/fork-touchpoints.md` so the abandoned approach isn't reattempted later.
+
+## Notes
+
+### Node Version
+
+Node version is pinned in `.nvmrc` and `mise.toml`.
