@@ -29,6 +29,7 @@ import {
   PersonUpdateDto,
 } from 'src/dtos/person.dto';
 import { ApiTag, Permission } from 'src/enum';
+import { ForkPersonService } from 'src/fork/fork-person.service';
 import { Auth, Authenticated, FileResponse } from 'src/middleware/auth.guard';
 import { LoggingRepository } from 'src/repositories/logging.repository';
 import { PersonService } from 'src/services/person.service';
@@ -40,6 +41,7 @@ import { UUIDParamDto } from 'src/validation';
 export class PersonController {
   constructor(
     private service: PersonService,
+    private forkService: ForkPersonService,
     private logger: LoggingRepository,
   ) {
     this.logger.setContext(PersonController.name);
@@ -97,8 +99,8 @@ export class PersonController {
     description: 'Retrieve a person by id.',
     history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
   })
-  getPerson(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto): Promise<PersonResponseDto> {
-    return this.service.getById(auth, id);
+  async getPerson(@Auth() auth: AuthDto, @Param() { id }: UUIDParamDto): Promise<PersonResponseDto> {
+    return this.forkService.enrichPerson(await this.service.getById(auth, id));
   }
 
   @Put(':id')
@@ -108,12 +110,12 @@ export class PersonController {
     description: 'Update an individual person.',
     history: new HistoryBuilder().added('v1').beta('v1').stable('v2'),
   })
-  updatePerson(
+  async updatePerson(
     @Auth() auth: AuthDto,
     @Param() { id }: UUIDParamDto,
     @Body() dto: PersonUpdateDto,
   ): Promise<PersonResponseDto> {
-    return this.service.update(auth, id, dto);
+    return this.forkService.enrichPerson(await this.service.update(auth, id, dto));
   }
 
   @Delete(':id')

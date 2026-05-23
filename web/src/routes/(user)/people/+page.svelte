@@ -17,7 +17,18 @@
   import { handlePromiseError } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { clearQueryParam } from '$lib/utils/navigation';
-  import { getAllPeople, getPerson, searchPerson, updatePerson, type PersonResponseDto } from '@immich/sdk';
+  import { getForkPeople } from '$lib/fork/api';
+  import Combobox, { type ComboBoxOption } from '$lib/components/shared-components/combobox.svelte';
+  import TagPill from '$lib/components/shared-components/tag-pill.svelte';
+  import {
+    getAllPeople,
+    getAllTags,
+    getPerson,
+    searchPerson,
+    updatePerson,
+    type PersonResponseDto,
+    type TagResponseDto,
+  } from '@immich/sdk';
   import { Button, Icon, modalManager, toastManager } from '@immich/ui';
   import { mdiAccountOff, mdiEyeOutline } from '@mdi/js';
   import { onMount } from 'svelte';
@@ -36,6 +47,10 @@
   let searchName = $state('');
   let newName = $state('');
   let currentPage = $state(1);
+  let selectedTagIds: string[] = $state([]);
+  let allTags: TagResponseDto[] = $state([]);
+  let forkTotal = $state<number | null>(null);
+  let forkHidden = $state<number | null>(null);
   let nextPage = $state(data.people.hasNextPage ? 2 : null);
   let personMerge1 = $state<PersonResponseDto>();
   let personMerge2 = $state<PersonResponseDto>();
@@ -46,6 +61,8 @@
   let searchPeopleElement = $state<ReturnType<typeof SearchPeople>>();
 
   onMount(() => {
+    handlePromiseError(getAllTags().then((tags) => (allTags = tags)));
+
     const getSearchedPeople = $page.url.searchParams.get(QueryParameter.SEARCHED_PEOPLE);
     if (getSearchedPeople) {
       searchName = getSearchedPeople;
@@ -65,6 +82,10 @@
 
   const loadInitialScroll = () =>
     new Promise<void>((resolve) => {
+      if (selectedTagIds.length > 0) {
+        resolve();
+        return;
+      }
       // Load up to previously loaded page when returning.
       let newNextPage = sessionStorage.getItem(SessionStorageKey.INFINITE_SCROLL_PAGE);
       if (newNextPage && nextPage) {
@@ -99,7 +120,19 @@
     }
 
     try {
-      const { people: newPeople, hasNextPage } = await getAllPeople({ withHidden: true, page: nextPage });
+      let newPeople: PersonResponseDto[];
+      let hasNextPage: boolean | undefined;
+
+      if (selectedTagIds.length > 0) {
+        const result = await getForkPeople({ tagIds: selectedTagIds, withHidden: true, page: nextPage });
+        newPeople = result.people;
+        hasNextPage = result.hasNextPage;
+      } else {
+        const result = await getAllPeople({ withHidden: true, page: nextPage });
+        newPeople = result.people;
+        hasNextPage = result.hasNextPage;
+      }
+
       people = people.concat(newPeople);
       if (nextPage !== null) {
         currentPage = nextPage;
@@ -108,6 +141,38 @@
     } catch (error) {
       handleError(error, $t('errors.failed_to_load_people'));
     }
+  };
+
+  const reloadForTagFilter = async () => {
+    currentPage = 1;
+    if (selectedTagIds.length > 0) {
+      const result = await getForkPeople({ tagIds: selectedTagIds, withHidden: true, page: 1 });
+      people = result.people;
+      nextPage = result.hasNextPage ? 2 : null;
+      forkTotal = result.total;
+      forkHidden = result.hidden;
+    } else {
+      const result = await getAllPeople({ withHidden: true, page: 1 });
+      people = result.people;
+      nextPage = result.hasNextPage ? 2 : null;
+      forkTotal = null;
+      forkHidden = null;
+    }
+  };
+
+  const tagMap = $derived(Object.fromEntries(allTags.map((tag) => [tag.id, tag])));
+
+  const handleTagFilterAdd = async (option?: ComboBoxOption) => {
+    if (!option?.id || selectedTagIds.includes(option.id)) {
+      return;
+    }
+    selectedTagIds = [...selectedTagIds, option.id];
+    await reloadForTagFilter();
+  };
+
+  const handleTagFilterRemove = async (tagId: string) => {
+    selectedTagIds = selectedTagIds.filter((id) => id !== tagId);
+    await reloadForTagFilter();
   };
 
   const handleSearch = async () => {
@@ -215,7 +280,13 @@
   let people = $derived(data.people.people);
 
   let visiblePeople = $derived(people.filter((people) => !people.isHidden));
-  let countVisiblePeople = $derived(searchName ? searchedPeopleLocal.length : data.people.total - data.people.hidden);
+  let countVisiblePeople = $derived(
+    searchName
+      ? searchedPeopleLocal.length
+      : selectedTagIds.length > 0
+        ? (forkTotal ?? 0) - (forkHidden ?? 0)
+        : data.people.total - data.people.hidden,
+  );
   let showPeople = $derived(searchName ? searchedPeopleLocal : visiblePeople);
 
   const onNameChangeInputFocus = (person: PersonResponseDto) => {
@@ -314,8 +385,8 @@
   ]}
 >
   {#snippet buttons()}
-    {#if people.length > 0}
-      <div class="flex gap-2 items-center justify-center">
+    {#if people.length > 0 || selectedTagIds.length > 0}
+      <div class="flex flex-wrap gap-2 items-center justify-end">
         <div class="hidden sm:block">
           <div class="w-40 lg:w-80 h-10">
             <SearchPeople
@@ -329,6 +400,22 @@
             />
           </div>
         </div>
+        {#if allTags.length > 0}
+          <div class="hidden sm:block">
+            <div class="w-40 lg:w-80 h-10 [&>div:first-child]:hidden">
+              <Combobox
+                onSelect={handleTagFilterAdd}
+                label={$t('tags')}
+                hideLabel
+                inputClass="rounded-2xl bg-gray-200 dark:bg-immich-dark-gray dark:text-white h-10 px-4 border-0 outline-hidden focus:outline-none focus-visible:ring-0"
+                options={allTags
+                  .filter((tag) => !selectedTagIds.includes(tag.id))
+                  .map((tag) => ({ id: tag.id, label: tag.value, value: tag.id }))}
+                placeholder={$t('search_tags')}
+              />
+            </div>
+          </div>
+        {/if}
         <Button
           leadingIcon={mdiEyeOutline}
           onclick={() => (selectHidden = !selectHidden)}
@@ -339,6 +426,17 @@
       </div>
     {/if}
   {/snippet}
+
+  {#if selectedTagIds.length > 0}
+    <div class="flex flex-wrap gap-1 mb-3">
+      {#each selectedTagIds as tagId (tagId)}
+        {@const tag = tagMap[tagId]}
+        {#if tag}
+          <TagPill label={tag.value} onRemove={() => handleTagFilterRemove(tagId)} />
+        {/if}
+      {/each}
+    </div>
+  {/if}
 
   {#if countVisiblePeople > 0 && (!searchName || searchedPeopleLocal.length > 0)}
     <PeopleInfiniteScroll people={showPeople} hasNextPage={!!nextPage && !searchName} {loadNextPage}>

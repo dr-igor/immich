@@ -5643,6 +5643,159 @@
         "x-immich-state": "Stable"
       }
     },
+    "/fork/people": {
+      "get": {
+        "operationId": "getAllPeople",
+        "parameters": [
+          {
+            "name": "closestAssetId",
+            "required": false,
+            "in": "query",
+            "description": "Closest asset ID for similarity search",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "closestPersonId",
+            "required": false,
+            "in": "query",
+            "description": "Closest person ID for similarity search",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 500,
+              "type": "number"
+            }
+          },
+          {
+            "name": "tagIds",
+            "required": false,
+            "in": "query",
+            "description": "Filter by tag IDs (AND logic). Pass null to find untagged people.",
+            "schema": {
+              "nullable": true,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "withHidden",
+            "required": false,
+            "in": "query",
+            "description": "Include hidden people",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForkEnrichedPeopleResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Fork - People"
+        ],
+        "x-immich-permission": "person.read"
+      }
+    },
+    "/fork/people/{id}/meta": {
+      "put": {
+        "operationId": "updatePersonMeta",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkPersonMetaUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForkEnrichedPersonResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "tags": [
+          "Fork - People"
+        ],
+        "x-immich-permission": "person.update"
+      }
+    },
     "/jobs": {
       "get": {
         "deprecated": true,
@@ -18230,6 +18383,146 @@
           "sidebarWeb": {
             "description": "Whether folders appear in web sidebar",
             "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ForkEnrichedPeopleResponseDto": {
+        "properties": {
+          "hasNextPage": {
+            "description": "Whether there are more pages",
+            "type": "boolean"
+          },
+          "hidden": {
+            "description": "Number of hidden people",
+            "type": "integer"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/ForkEnrichedPersonResponseDto"
+            },
+            "type": "array"
+          },
+          "total": {
+            "description": "Total number of people",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hidden",
+          "people",
+          "total"
+        ],
+        "type": "object"
+      },
+      "ForkEnrichedPersonResponseDto": {
+        "properties": {
+          "birthDate": {
+            "description": "Person date of birth",
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "color": {
+            "description": "Person color (hex)",
+            "type": "string",
+            "x-immich-history": [
+              {
+                "version": "v1.126.0",
+                "state": "Added"
+              },
+              {
+                "version": "v2",
+                "state": "Stable"
+              }
+            ],
+            "x-immich-state": "Stable"
+          },
+          "id": {
+            "description": "Person ID",
+            "type": "string"
+          },
+          "isFavorite": {
+            "description": "Is favorite",
+            "type": "boolean",
+            "x-immich-history": [
+              {
+                "version": "v1.126.0",
+                "state": "Added"
+              },
+              {
+                "version": "v2",
+                "state": "Stable"
+              }
+            ],
+            "x-immich-state": "Stable"
+          },
+          "isHidden": {
+            "description": "Is hidden",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Person name",
+            "type": "string"
+          },
+          "note": {
+            "description": "Private note about this person",
+            "nullable": true,
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags assigned to this person",
+            "items": {
+              "$ref": "#/components/schemas/TagResponseDto"
+            },
+            "type": "array"
+          },
+          "thumbnailPath": {
+            "description": "Thumbnail path",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Last update date",
+            "format": "date-time",
+            "type": "string",
+            "x-immich-history": [
+              {
+                "version": "v1.107.0",
+                "state": "Added"
+              },
+              {
+                "version": "v2",
+                "state": "Stable"
+              }
+            ],
+            "x-immich-state": "Stable"
+          }
+        },
+        "required": [
+          "birthDate",
+          "id",
+          "isHidden",
+          "name",
+          "tags",
+          "thumbnailPath"
+        ],
+        "type": "object"
+      },
+      "ForkPersonMetaUpdateDto": {
+        "properties": {
+          "note": {
+            "description": "Private note about this person",
+            "nullable": true,
+            "type": "string"
+          },
+          "tagIds": {
+            "description": "Tag IDs to assign to this person",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
           }
         },
         "type": "object"

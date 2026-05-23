@@ -1,4 +1,5 @@
 import { PersonController } from 'src/controllers/person.controller';
+import { ForkPersonService } from 'src/fork/fork-person.service';
 import { LoggingRepository } from 'src/repositories/logging.repository';
 import { PersonService } from 'src/services/person.service';
 import request from 'supertest';
@@ -9,10 +10,12 @@ import { automock, ControllerContext, controllerSetup, mockBaseService } from 't
 describe(PersonController.name, () => {
   let ctx: ControllerContext;
   const service = mockBaseService(PersonService);
+  const forkService = { enrichPerson: vi.fn(<T>(p: T) => Promise.resolve(p)) };
 
   beforeAll(async () => {
     ctx = await controllerSetup(PersonController, [
       { provide: PersonService, useValue: service },
+      { provide: ForkPersonService, useValue: forkService },
       { provide: LoggingRepository, useValue: automock(LoggingRepository, { strict: false }) },
     ]);
     return () => ctx.close();
@@ -20,6 +23,8 @@ describe(PersonController.name, () => {
 
   beforeEach(() => {
     service.resetAllMocks();
+    forkService.enrichPerson.mockClear();
+    forkService.enrichPerson.mockImplementation(<T>(p: T) => Promise.resolve(p));
     ctx.reset();
   });
 
@@ -92,6 +97,19 @@ describe(PersonController.name, () => {
     it('should be an authenticated route', async () => {
       await request(ctx.getHttpServer()).get(`/people/${factory.uuid()}`);
       expect(ctx.authenticate).toHaveBeenCalled();
+    });
+
+    it('should enrich the upstream person response through ForkPersonService', async () => {
+      const id = factory.uuid();
+      const upstreamPerson = { id, name: 'A' };
+      const enriched = { ...upstreamPerson, note: 'hi', tags: [] };
+      service.getById.mockResolvedValue(upstreamPerson as never);
+      forkService.enrichPerson.mockResolvedValue(enriched as never);
+
+      const { status, body } = await request(ctx.getHttpServer()).get(`/people/${id}`);
+      expect(status).toBe(200);
+      expect(forkService.enrichPerson).toHaveBeenCalledWith(upstreamPerson);
+      expect(body).toEqual(enriched);
     });
   });
 
@@ -181,6 +199,19 @@ describe(PersonController.name, () => {
         .send({ birthDate: '9999-01-01' });
       expect(status).toBe(400);
       expect(body).toEqual(errorDto.badRequest(['Birth date cannot be in the future']));
+    });
+
+    it('should enrich the upstream update response through ForkPersonService', async () => {
+      const id = factory.uuid();
+      const upstreamPerson = { id, name: 'Updated' };
+      const enriched = { ...upstreamPerson, note: null, tags: [] };
+      service.update.mockResolvedValue(upstreamPerson as never);
+      forkService.enrichPerson.mockResolvedValue(enriched as never);
+
+      const { status, body } = await request(ctx.getHttpServer()).put(`/people/${id}`).send({ name: 'Updated' });
+      expect(status).toBe(200);
+      expect(forkService.enrichPerson).toHaveBeenCalledWith(upstreamPerson);
+      expect(body).toEqual(enriched);
     });
   });
 

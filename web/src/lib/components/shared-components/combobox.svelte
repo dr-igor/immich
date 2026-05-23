@@ -47,6 +47,7 @@
     defaultFirstOption?: boolean;
     onSelect?: (option: ComboBoxOption | undefined) => void;
     forceFocus?: boolean;
+    inputClass?: string;
   }
 
   let {
@@ -60,6 +61,7 @@
     defaultFirstOption = false,
     onSelect = () => {},
     forceFocus = false,
+    inputClass = 'immich-form-input',
   }: Props = $props();
 
   /**
@@ -304,7 +306,7 @@
       class:!rounded-b-none={isOpen && dropdownDirection === 'bottom'}
       class:!rounded-t-none={isOpen && dropdownDirection === 'top'}
       class:cursor-pointer={!isActive}
-      class="immich-form-input text-sm w-full pe-12! transition-all"
+      class="{inputClass} text-sm w-full pe-12! transition-all"
       id={inputId}
       onfocus={activate}
       oninput={onInput}
