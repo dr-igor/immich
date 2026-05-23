@@ -39,6 +39,9 @@
   import { getPeopleThumbnailUrl } from '$lib/utils';
   import { handleError } from '$lib/utils/handle-error';
   import { isExternalUrl } from '$lib/utils/navigation';
+  import PersonNoteEditor from '$lib/components/fork/PersonNoteEditor.svelte';
+  import PersonTagEditor from '$lib/components/fork/PersonTagEditor.svelte';
+  import type { EnrichedPersonResponseDto } from '$lib/fork/types';
   import { AssetVisibility, searchPerson, updatePerson, type PersonResponseDto } from '@immich/sdk';
   import {
     ActionButton,
@@ -414,6 +417,15 @@
               </div>
             {/if}
           </section>
+          {#if !isEditingName}
+            {@const enrichedPerson = person as EnrichedPersonResponseDto}
+            {#if enrichedPerson.tags !== undefined}
+              <div class="w-64 sm:w-96 mt-2">
+                <PersonNoteEditor person={enrichedPerson} onUpdate={(p) => (person = p)} />
+                <PersonTagEditor person={enrichedPerson} onUpdate={(p) => (person = p)} />
+              </div>
+            {/if}
+          {/if}
           {#if isEditingName}
             <div class="absolute w-64 sm:w-96 z-1">
               {#if isSearchingPeople}

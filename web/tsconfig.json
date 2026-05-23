@@ -13,12 +13,8 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2022",
-    "types": [
-      "vitest/globals"
-    ]
+    "types": ["vitest/globals"]
   },
-  "extends": "./.svelte-kit/tsconfig.json",
-  "exclude": [
-    "node_modules",
-  ],
+  "exclude": ["node_modules"],
+  "extends": "./.svelte-kit/tsconfig.json"
 }

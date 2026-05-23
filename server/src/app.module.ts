@@ -9,6 +9,7 @@ import { commandsAndQuestions } from 'src/commands';
 import { IWorker } from 'src/constants';
 import { controllers } from 'src/controllers';
 import { ImmichWorker } from 'src/enum';
+import { forkControllers, forkProviders } from 'src/fork';
 import { MaintenanceAuthGuard } from 'src/maintenance/maintenance-auth.guard';
 import { MaintenanceHealthRepository } from 'src/maintenance/maintenance-health.repository';
 import { MaintenanceWebsocketRepository } from 'src/maintenance/maintenance-websocket.repository';
@@ -39,7 +40,7 @@ import { QueueService } from 'src/services/queue.service';
 import { getKyselyConfig } from 'src/utils/database';
 import { configureUserAgent } from 'src/utils/fetch';
 
-const common = [...repositories, ...services, GlobalExceptionFilter];
+const common = [...repositories, ...services, ...forkProviders, GlobalExceptionFilter];
 
 const commonMiddleware = [
   { provide: APP_FILTER, useClass: GlobalExceptionFilter },
@@ -101,7 +102,7 @@ export class BaseModule implements OnModuleInit, OnModuleDestroy {
 
 @Module({
   imports: [...bullImports, ...commonImports, ScheduleModule.forRoot()],
-  controllers: [...controllers],
+  controllers: [...controllers, ...forkControllers],
   providers: [...common, ...apiMiddleware, { provide: IWorker, useValue: ImmichWorker.Api }],
 })
 export class ApiModule extends BaseModule {}
